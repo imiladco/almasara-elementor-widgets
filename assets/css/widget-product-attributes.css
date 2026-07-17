@@ -1,0 +1,151 @@
+/* ویجت ویژگی‌های محصول الماسارا */
+
+.amw-paw {
+	--amw-icon-size: 28px;
+	display: block;
+}
+
+.amw-paw a {
+	color: inherit;
+	text-decoration: none;
+}
+
+/* ---------- سطر اول ---------- */
+
+.amw-paw__header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+
+.amw-paw__header.amw-reverse {
+	flex-direction: row-reverse;
+}
+
+.amw-paw__title {
+	margin: 0;
+	white-space: nowrap;
+}
+
+.amw-paw__divider {
+	flex: 1 1 auto;
+	height: 0;
+	border-top: 1px dashed #d9dbe4;
+}
+
+.amw-paw__divider.amw-fixed {
+	flex: 0 0 auto;
+	width: 120px;
+}
+
+.amw-paw__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+.amw-paw__icon svg {
+	width: var(--amw-icon-size);
+	height: var(--amw-icon-size);
+	display: block;
+}
+
+.amw-paw__icon img {
+	width: var(--amw-icon-size);
+	height: auto;
+	display: block;
+}
+
+.amw-paw__icon i {
+	font-size: var(--amw-icon-size);
+}
+
+/* ---------- رنگ‌آمیزی SVG ----------
+ * original: بدون قانون؛ رنگ خود فایل حفظ می‌شود
+ * auto: فقط صفت‌هایی که در فایل رنگ دارند بازرنگ می‌شوند
+ * fill/stroke: اجبار روی همان صفت
+ */
+
+.amw-svgmode-auto .amw-paw__icon svg [fill]:not([fill="none"]):not([fill="transparent"]) {
+	fill: var(--amw-icon-color, currentColor);
+}
+
+.amw-svgmode-auto .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
+	stroke: var(--amw-icon-color, currentColor);
+}
+
+/* شکل‌هایی که هیچ رنگی ندارند و به fill پیش‌فرض (مشکی) تکیه کرده‌اند */
+.amw-svgmode-auto .amw-paw__icon svg :is(path, circle, rect, ellipse, polygon, polyline, line):not([fill]):not([stroke]) {
+	fill: var(--amw-icon-color, currentColor);
+}
+
+.amw-svgmode-fill .amw-paw__icon svg,
+.amw-svgmode-fill .amw-paw__icon svg *:not([fill="none"]):not([fill="transparent"]) {
+	fill: var(--amw-icon-color, currentColor) !important;
+}
+
+.amw-svgmode-stroke .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
+	stroke: var(--amw-icon-color, currentColor) !important;
+}
+
+/* ---------- آیتم‌ها ---------- */
+
+.amw-paw__items {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.amw-paw__items.amw-flex .amw-paw__item {
+	flex: 0 1 var(--amw-item-basis, auto);
+	min-width: 0;
+}
+
+.amw-paw__item {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 20px 24px;
+	background: #fff;
+	border: 1px solid #eef0f6;
+	transition: all 0.3s ease;
+	min-width: 0;
+}
+
+.amw-paw__item.amw-item-row {
+	flex-direction: row;
+	align-items: center;
+}
+
+.amw-paw__item.amw-item-row-between {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.amw-paw__label {
+	font-size: 14px;
+	color: #2b4b80;
+}
+
+.amw-paw__value {
+	font-weight: 700;
+	color: #1a2b4a;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ---------- پیام ادیتور ---------- */
+
+.amw-paw__notice {
+	padding: 16px;
+	border: 1px dashed #c00;
+	border-radius: 6px;
+	color: #c00;
+	font-size: 13px;
+	text-align: center;
+}
