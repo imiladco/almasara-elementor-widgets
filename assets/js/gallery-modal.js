@@ -128,8 +128,14 @@
 
 		function open(index) {
 			isOpen = true;
-			modal.hidden = false;
+			modal.setAttribute('aria-hidden', 'false');
 			document.body.classList.add('amw-pg-noscroll');
+
+			// یک reflow کوچک تا transition درست بازی کند بعد افزودن کلاس
+			// eslint-disable-next-line no-unused-expressions
+			modal.offsetHeight;
+			modal.classList.add('is-open');
+
 			fetchImages().then(function (list) {
 				if (list.length) {
 					show(index);
@@ -140,7 +146,8 @@
 
 		function close() {
 			isOpen = false;
-			modal.hidden = true;
+			modal.classList.remove('is-open');
+			modal.setAttribute('aria-hidden', 'true');
 			document.body.classList.remove('amw-pg-noscroll');
 		}
 

@@ -120,7 +120,26 @@
 	margin-bottom: 0;
 }
 
-/* ---------- ویجت گالری محصول ---------- */
+/* ---------- ویجت گالری محصول ----------
+ *
+ * ساختار تختِ CSS Grid: تصویر شاخص (.amw-pg__main) و همه تامبنیل‌ها (.amw-pg__thumb)
+ * فرزندان مستقیم .amw-pg هستند. با دو media query دو چیدمان متفاوت می‌گیرند:
+ *
+ * موبایل (پیش‌فرض):
+ *   گرید ۲ ستونه، هر آیتم مربع 1:1 و آیتم‌های ۱، ۴، ۷، ... تمام عرض
+ *   یعنی «۱ بزرگ + ۲ کوچک» تکرارشونده. تمام تامبنیل‌های گالری نمایش داده می‌شوند.
+ *
+ * دسکتاپ (>=768px):
+ *   گرید N ستونه (--amw-pg-thumbs)، تصویر شاخص تمام عرض سطر اول، بقیه در سطر دوم.
+ *   فقط N تای اول قابل نمایش‌اند و بقیه (--extra) مخفی می‌شوند.
+ */
+
+.amw-pg {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 8px;
+	row-gap: 8px;
+}
 
 .amw-pg__main,
 .amw-pg__thumb {
@@ -133,11 +152,7 @@
 	background: none;
 	cursor: pointer;
 	overflow: hidden;
-}
-
-.amw-pg__main {
 	aspect-ratio: 1 / 1;
-	margin-bottom: 16px;
 }
 
 .amw-pg__main img,
@@ -150,15 +165,41 @@
 	transition: all 0.3s ease;
 }
 
-.amw-pg__thumbs {
-	display: grid;
-	grid-template-columns: repeat(var(--amw-pg-cols, 4), minmax(0, 1fr));
-	gap: 12px;
+/*
+ * الگوی موبایلِ «یکی‌درمیون»: هر آیتمی که در جایگاه 3n+1 قرار گیرد تمام عرض می‌شود.
+ * تصویر شاخص در جایگاه ۱ است پس خودکار تمام عرض می‌شود؛ سپس هر ۳ آیتم یکبار
+ * یک آیتم بزرگ ظاهر می‌شود.
+ */
+.amw-pg--mobile-alt > .amw-pg__main,
+.amw-pg--mobile-alt > .amw-pg__thumb:nth-child(3n + 1) {
+	grid-column: 1 / -1;
 }
 
-/* تامبنیل‌ها همیشه مربع */
-.amw-pg__thumb {
-	aspect-ratio: 1 / 1;
+/* حالت «همان چیدمان دسکتاپ» در موبایل: مثل دسکتاپ فقط N تای اول */
+.amw-pg--mobile-match > .amw-pg__main {
+	grid-column: 1 / -1;
+}
+.amw-pg--mobile-match > .amw-pg__thumb--extra {
+	display: none;
+}
+
+/* دسکتاپ */
+@media (min-width: 768px) {
+	.amw-pg {
+		grid-template-columns: repeat(var(--amw-pg-thumbs, 4), minmax(0, 1fr));
+	}
+	.amw-pg > .amw-pg__main {
+		grid-column: 1 / -1;
+	}
+	/*
+	 * ریست الگوی موبایل روی دسکتاپ — تامبنیل‌های تک‌جایگاه دوباره تک‌ستون می‌شوند
+	 */
+	.amw-pg > .amw-pg__thumb {
+		grid-column: auto;
+	}
+	.amw-pg > .amw-pg__thumb--extra {
+		display: none;
+	}
 }
 
 /* اورلی «تصاویر بیشتر» با سه‌نقطه */
@@ -169,6 +210,19 @@
 	align-items: center;
 	justify-content: center;
 	background-color: rgba(16, 24, 40, 0.6);
+}
+
+/*
+ * در موبایلِ «یکی‌درمیون» تمام تامبنیل‌ها نمایش داده می‌شوند، پس تامبنیل آخر
+ * روی دسکتاپ که --more شده در موبایل نباید اورلی داشته باشد.
+ */
+@media (max-width: 767px) {
+	.amw-pg--mobile-alt > .amw-pg__thumb--more .amw-pg__more-overlay {
+		display: none;
+	}
+	.amw-pg--mobile-alt > .amw-pg__thumb--more img {
+		filter: none !important;
+	}
 }
 
 .amw-pg__dots {
@@ -190,6 +244,7 @@ body.amw-pg-noscroll {
 }
 
 .amw-pg-modal {
+	--amw-pg-modal-dur: 260ms;
 	position: fixed;
 	inset: 0;
 	z-index: 99999;
@@ -198,10 +253,61 @@ body.amw-pg-noscroll {
 	align-items: center;
 	background-color: rgba(255, 255, 255, 0.98);
 	padding: 16px;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition:
+		opacity var(--amw-pg-modal-dur) ease,
+		transform var(--amw-pg-modal-dur) cubic-bezier(0.16, 1, 0.3, 1),
+		visibility var(--amw-pg-modal-dur);
 }
 
-.amw-pg-modal[hidden] {
-	display: none;
+.amw-pg-modal.is-open {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+	transition-delay: 0s;
+}
+
+/* ---------- انیمیشن‌های ورود/خروج مودال ---------- */
+
+.amw-pg-modal--anim-fade {
+	transform: none;
+}
+
+.amw-pg-modal--anim-fade-scale {
+	transform: scale(0.96);
+}
+.amw-pg-modal--anim-fade-scale.is-open {
+	transform: scale(1);
+}
+
+.amw-pg-modal--anim-slide-up {
+	transform: translateY(30px);
+}
+.amw-pg-modal--anim-slide-up.is-open {
+	transform: translateY(0);
+}
+
+.amw-pg-modal--anim-zoom .amw-pg-modal__stage,
+.amw-pg-modal--anim-zoom .amw-pg-modal__tab,
+.amw-pg-modal--anim-zoom .amw-pg-modal__strip {
+	transform: scale(0.9);
+	transition: transform var(--amw-pg-modal-dur) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.amw-pg-modal--anim-zoom.is-open .amw-pg-modal__stage,
+.amw-pg-modal--anim-zoom.is-open .amw-pg-modal__tab,
+.amw-pg-modal--anim-zoom.is-open .amw-pg-modal__strip {
+	transform: scale(1);
+}
+
+/* رعایت prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+	.amw-pg-modal,
+	.amw-pg-modal * {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
 }
 
 .amw-pg-modal__close {

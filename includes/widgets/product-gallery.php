@@ -72,16 +72,27 @@ class Product_Gallery extends Widget_Base {
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
-        $this->add_responsive_control('thumbs_count', [
-            'label'       => __('تعداد تامبنیل‌ها', 'almasara-widgets'),
+        $this->add_control('thumbs_count', [
+            'label'       => __('تعداد تامبنیل‌ها (دسکتاپ)', 'almasara-widgets'),
             'type'        => Controls_Manager::NUMBER,
             'min'         => 1,
             'max'         => 10,
             'default'     => 4,
-            'description' => __('تامبنیل‌ها همیشه مربعی‌اند و اسلاید نمی‌شوند. اگر گالری تصاویر بیشتری داشته باشد، روی تامبنیل آخر اورلی و سه‌نقطه نمایش داده می‌شود.', 'almasara-widgets'),
+            'description' => __('تعداد تامبنیل‌های قابل نمایش کنار تصویر شاخص در دسکتاپ. تامبنیل‌ها همیشه مربعی‌اند و اسلاید نمی‌شوند. اگر تصاویر بیشتری در گالری باشد، روی تامبنیل آخر اورلی می‌نشیند.', 'almasara-widgets'),
             'selectors'   => [
-                '{{WRAPPER}} .amw-pg__thumbs' => '--amw-pg-cols: {{VALUE}};',
+                '{{WRAPPER}} .amw-pg' => '--amw-pg-thumbs: {{VALUE}};',
             ],
+        ]);
+
+        $this->add_control('mobile_layout', [
+            'label'        => __('چیدمان موبایل', 'almasara-widgets'),
+            'type'         => Controls_Manager::SELECT,
+            'default'      => 'alternating',
+            'options'      => [
+                'alternating' => __('یکی‌درمیون (۱ بزرگ، ۲ کوچک)', 'almasara-widgets'),
+                'match'       => __('همان چیدمان دسکتاپ', 'almasara-widgets'),
+            ],
+            'description'  => __('در حالت یکی‌درمیون، تمام تصاویر گالری در موبایل نشان داده می‌شوند: تصویر شاخص و هر آیتم بعدی که در جایگاه ۱ در الگو قرار بگیرد بزرگ و بقیه ۲تا۲تا مربعی می‌شوند.', 'almasara-widgets'),
         ]);
 
         $this->add_control('show_dots', [
@@ -129,6 +140,30 @@ class Product_Gallery extends Widget_Base {
                 'modal_enable' => 'yes',
                 'show_tab'     => 'yes',
             ],
+        ]);
+
+        $this->add_control('modal_animation', [
+            'label'       => __('انیمیشن ورود/خروج', 'almasara-widgets'),
+            'type'        => Controls_Manager::SELECT,
+            'default'     => 'fade-scale',
+            'options'     => [
+                'fade'       => __('محو ساده (fade)', 'almasara-widgets'),
+                'fade-scale' => __('محو + بزرگ‌نمایی نرم (پیشنهادی)', 'almasara-widgets'),
+                'slide-up'   => __('اسلاید از پایین', 'almasara-widgets'),
+                'zoom'       => __('بزرگ‌نمایی از کوچک', 'almasara-widgets'),
+            ],
+            'condition'   => ['modal_enable' => 'yes'],
+        ]);
+
+        $this->add_control('modal_duration', [
+            'label'      => __('مدت انیمیشن (میلی‌ثانیه)', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'range'      => ['px' => ['min' => 100, 'max' => 800]],
+            'default'    => ['size' => 260],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pg-modal' => '--amw-pg-modal-dur: {{SIZE}}ms;',
+            ],
+            'condition'  => ['modal_enable' => 'yes'],
         ]);
 
         $this->end_controls_section();
@@ -193,12 +228,12 @@ class Product_Gallery extends Widget_Base {
         ]);
 
         $this->add_responsive_control('main_spacing', [
-            'label'      => __('فاصله تا تامبنیل‌ها', 'almasara-widgets'),
+            'label'      => __('فاصله تا تامبنیل‌ها (سطر)', 'almasara-widgets'),
             'type'       => Controls_Manager::SLIDER,
             'size_units' => ['px', 'em'],
             'range'      => ['px' => ['min' => 0, 'max' => 100]],
             'selectors'  => [
-                '{{WRAPPER}} .amw-pg__main' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .amw-pg' => 'row-gap: {{SIZE}}{{UNIT}};',
             ],
         ]);
 
@@ -252,13 +287,13 @@ class Product_Gallery extends Widget_Base {
         ]);
 
         $this->add_responsive_control('thumbs_gap', [
-            'label'      => __('فاصله بین تامبنیل‌ها', 'almasara-widgets'),
+            'label'      => __('فاصله بین تامبنیل‌ها (ستون)', 'almasara-widgets'),
             'type'       => Controls_Manager::SLIDER,
             'size_units' => ['px', 'em'],
             'range'      => ['px' => ['min' => 0, 'max' => 60]],
             'default'    => ['size' => 12, 'unit' => 'px'],
             'selectors'  => [
-                '{{WRAPPER}} .amw-pg__thumbs' => 'gap: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .amw-pg' => 'column-gap: {{SIZE}}{{UNIT}};',
             ],
         ]);
 
@@ -747,14 +782,22 @@ class Product_Gallery extends Widget_Base {
         }
 
         $count     = max(1, (int) ($settings['thumbs_count'] ?? 4));
-        $visible   = array_slice($gallery_ids, 0, $count);
-        $remaining = count($gallery_ids) - count($visible);
+        $remaining = max(0, count($gallery_ids) - $count);
         $total     = 1 + count($gallery_ids);
 
-        $modal_enabled = 'yes' === $settings['modal_enable'];
-        $trigger_tag   = $modal_enabled ? 'button' : 'div';
+        $modal_enabled  = 'yes' === $settings['modal_enable'];
+        $mobile_layout  = (string) ($settings['mobile_layout'] ?? 'alternating');
+        $anim           = (string) ($settings['modal_animation'] ?? 'fade-scale');
+        $anim_whitelist = ['fade', 'fade-scale', 'slide-up', 'zoom'];
+        if (!in_array($anim, $anim_whitelist, true)) {
+            $anim = 'fade-scale';
+        }
+        $trigger_tag = $modal_enabled ? 'button' : 'div';
 
-        $this->add_render_attribute('wrapper', 'class', 'amw-pg');
+        $this->add_render_attribute('wrapper', 'class', [
+            'amw-pg',
+            'amw-pg--mobile-' . ($mobile_layout === 'match' ? 'match' : 'alt'),
+        ]);
         if ($modal_enabled) {
             /*
              * پارامتر v از زمان آخرین ویرایش محصول ساخته می‌شود؛ با هر آپدیت
@@ -780,33 +823,45 @@ class Product_Gallery extends Widget_Base {
                 <?php echo wp_get_attachment_image($main_id, 'large', false, ['loading' => 'eager']); ?>
             </<?php echo $trigger_tag; // phpcs:ignore ?>>
 
-            <?php if (!empty($visible)) : ?>
-                <div class="amw-pg__thumbs">
-                    <?php foreach ($visible as $i => $attachment_id) :
-                        $is_last_more = $remaining > 0 && $i === count($visible) - 1;
-                        ?>
-                        <<?php echo $trigger_tag; // phpcs:ignore ?> class="amw-pg__thumb<?php echo $is_last_more ? ' amw-pg__thumb--more' : ''; ?>" <?php echo $modal_enabled ? 'type="button" data-index="' . esc_attr($i + 1) . '" aria-label="' . esc_attr__('بزرگ‌نمایی تصویر', 'almasara-widgets') . '"' : ''; ?>>
-                            <?php echo wp_get_attachment_image($attachment_id, 'medium', false, ['loading' => 'lazy']); ?>
-                            <?php if ($is_last_more) : ?>
-                                <span class="amw-pg__more-overlay" aria-hidden="true">
-                                    <?php if ('yes' === $settings['show_more_count']) :
-                                        $position_whitelist = ['top-start', 'top-end', 'bottom-start', 'bottom-end', 'center'];
-                                        $badge_position = in_array($settings['more_count_position'], $position_whitelist, true) ? $settings['more_count_position'] : 'top-start';
-                                        ?>
-                                        <span class="amw-pg__more-count amw-pg__more-count--<?php echo esc_attr($badge_position); ?>">+<?php echo esc_html($remaining); ?></span>
-                                    <?php endif; ?>
-                                    <?php if ('yes' === $settings['show_dots']) : ?>
-                                        <span class="amw-pg__dots"><span></span><span></span><span></span></span>
-                                    <?php endif; ?>
-                                </span>
+            <?php
+            /*
+             * تمام تصاویر گالری به صورت flat به عنوان فرزند مستقیم .amw-pg رندر می‌شوند
+             * تا در موبایل الگوی «۱ بزرگ + ۲ کوچک» با CSS Grid + nth-child کار کند.
+             * روی دسکتاپ فقط $count تای اول نشان داده و بقیه با --extra مخفی می‌شوند.
+             */
+            foreach ($gallery_ids as $i => $attachment_id) :
+                $data_index   = $i + 1;
+                $is_visible   = $i < $count;
+                $is_last_more = $is_visible && $i === $count - 1 && $remaining > 0;
+
+                $classes = ['amw-pg__thumb'];
+                if (!$is_visible) {
+                    $classes[] = 'amw-pg__thumb--extra';
+                }
+                if ($is_last_more) {
+                    $classes[] = 'amw-pg__thumb--more';
+                }
+                ?>
+                <<?php echo $trigger_tag; // phpcs:ignore ?> class="<?php echo esc_attr(implode(' ', $classes)); ?>" <?php echo $modal_enabled ? 'type="button" data-index="' . esc_attr($data_index) . '" aria-label="' . esc_attr__('بزرگ‌نمایی تصویر', 'almasara-widgets') . '"' : ''; ?>>
+                    <?php echo wp_get_attachment_image($attachment_id, 'medium', false, ['loading' => 'lazy']); ?>
+                    <?php if ($is_last_more) : ?>
+                        <span class="amw-pg__more-overlay" aria-hidden="true">
+                            <?php if ('yes' === $settings['show_more_count']) :
+                                $position_whitelist = ['top-start', 'top-end', 'bottom-start', 'bottom-end', 'center'];
+                                $badge_position = in_array($settings['more_count_position'] ?? '', $position_whitelist, true) ? $settings['more_count_position'] : 'top-start';
+                                ?>
+                                <span class="amw-pg__more-count amw-pg__more-count--<?php echo esc_attr($badge_position); ?>">+<?php echo esc_html($remaining); ?></span>
                             <?php endif; ?>
-                        </<?php echo $trigger_tag; // phpcs:ignore ?>>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                            <?php if ('yes' === $settings['show_dots']) : ?>
+                                <span class="amw-pg__dots"><span></span><span></span><span></span></span>
+                            <?php endif; ?>
+                        </span>
+                    <?php endif; ?>
+                </<?php echo $trigger_tag; // phpcs:ignore ?>>
+            <?php endforeach; ?>
 
             <?php if ($modal_enabled) : ?>
-                <div class="amw-pg-modal" hidden role="dialog" aria-modal="true" aria-label="<?php echo esc_attr__('گالری تصاویر محصول', 'almasara-widgets'); ?>">
+                <div class="amw-pg-modal amw-pg-modal--anim-<?php echo esc_attr($anim); ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-label="<?php echo esc_attr__('گالری تصاویر محصول', 'almasara-widgets'); ?>">
                     <button type="button" class="amw-pg-modal__close" aria-label="<?php echo esc_attr__('بستن', 'almasara-widgets'); ?>">
                         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </button>
