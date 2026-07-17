@@ -4,9 +4,9 @@ namespace Almasara_Widgets\Widgets;
 use Elementor\Widget_Base;
 use Elementor\Controls_Manager;
 use Elementor\Repeater;
-use Elementor\Icons_Manager;
 use Elementor\Utils;
 use Elementor\Group_Control_Typography;
+use Elementor\Group_Control_Text_Shadow;
 use Elementor\Group_Control_Border;
 use Elementor\Group_Control_Box_Shadow;
 use Elementor\Group_Control_Background;
@@ -18,9 +18,8 @@ if (!defined('ABSPATH')) {
 /**
  * ویجت «ویژگی‌های محصول»
  *
- * سطر اول: عنوان + خط جداکننده + آیکون
- * سطرهای بعد: باکس‌های ویژگی محصول که تک‌تک از پنل انتخاب می‌شوند
- * و مقدارشان به‌صورت داینامیک از محصول جاری خوانده می‌شود.
+ * سطر معرفی: عنوان + خط جداکننده + آیکون
+ * سطر آیتم‌ها: باکس‌های ویژگی محصول که به‌صورت داینامیک از محصول جاری خوانده می‌شوند.
  */
 class Product_Attributes extends Widget_Base {
 
@@ -53,25 +52,24 @@ class Product_Attributes extends Widget_Base {
      * ------------------------------------------------------------------- */
 
     protected function register_controls(): void {
-        $this->register_header_controls();
-        $this->register_items_controls();
+        // تب محتوا
+        $this->register_intro_content_controls();
+        $this->register_layout_controls();
+        $this->register_items_content_controls();
         $this->register_link_controls();
-        $this->register_preview_controls();
 
-        $this->register_layout_style_controls();
-        $this->register_header_style_controls();
-        $this->register_title_style_controls();
-        $this->register_divider_style_controls();
-        $this->register_icon_style_controls();
-        $this->register_item_box_style_controls();
-        $this->register_label_style_controls();
-        $this->register_value_style_controls();
+        // تب استایل
+        $this->register_intro_style_controls();
+        $this->register_item_style_controls();
     }
 
-    /** تب محتوا: سطر اول (عنوان/جداکننده/آیکون) */
-    private function register_header_controls(): void {
-        $this->start_controls_section('section_header', [
-            'label' => __('سطر اول (عنوان)', 'almasara-widgets'),
+    /* =====================================================================
+     * محتوا — بخش اول: معرفی
+     * =================================================================== */
+
+    private function register_intro_content_controls(): void {
+        $this->start_controls_section('section_intro', [
+            'label' => __('معرفی', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
@@ -84,7 +82,7 @@ class Product_Attributes extends Widget_Base {
         ]);
 
         $this->add_control('title_tag', [
-            'label'   => __('تگ HTML عنوان', 'almasara-widgets'),
+            'label'   => __('تگ', 'almasara-widgets'),
             'type'    => Controls_Manager::SELECT,
             'default' => 'h3',
             'options' => [
@@ -104,57 +102,344 @@ class Product_Attributes extends Widget_Base {
             'default' => 'yes',
         ]);
 
-        $this->add_control('icon_type', [
-            'label'   => __('نوع آیکون', 'almasara-widgets'),
-            'type'    => Controls_Manager::SELECT,
-            'default' => 'icon',
-            'options' => [
-                'none'  => __('بدون آیکون', 'almasara-widgets'),
-                'icon'  => __('کتابخانه آیکون / SVG', 'almasara-widgets'),
-                'image' => __('آپلود تصویر (هر فرمتی)', 'almasara-widgets'),
-            ],
-        ]);
-
-        $this->add_control('icon', [
-            'label'       => __('آیکون', 'almasara-widgets'),
-            'type'        => Controls_Manager::ICONS,
-            'default'     => [
-                'value'   => 'fas fa-sliders-h',
-                'library' => 'fa-solid',
-            ],
-            'condition'   => ['icon_type' => 'icon'],
-        ]);
-
         $this->add_control('icon_image', [
-            'label'       => __('تصویر آیکون', 'almasara-widgets'),
+            'label'       => __('آیکون', 'almasara-widgets'),
             'type'        => Controls_Manager::MEDIA,
             'media_types' => ['image', 'svg'],
             'dynamic'     => ['active' => true],
-            'condition'   => ['icon_type' => 'image'],
-        ]);
-
-        $this->add_control('inline_svg', [
-            'label'        => __('رندر SVG به‌صورت inline', 'almasara-widgets'),
-            'type'         => Controls_Manager::SWITCHER,
-            'default'      => 'yes',
-            'description'  => __('اگر فایل آپلودی SVG باشد، کد آن مستقیم در صفحه درج می‌شود تا رنگ و استایل کامل قابل تغییر باشد.', 'almasara-widgets'),
-            'condition'    => ['icon_type' => 'image'],
-        ]);
-
-        $this->add_control('header_reverse', [
-            'label'       => __('جابه‌جایی چیدمان سطر اول', 'almasara-widgets'),
-            'type'        => Controls_Manager::SWITCHER,
-            'description' => __('جای عنوان و آیکون را عوض می‌کند.', 'almasara-widgets'),
+            'description' => __('تصویر یا SVG انتخاب کنید. SVG به‌صورت inline رندر می‌شود و رنگش از تب استایل قابل تغییر است.', 'almasara-widgets'),
         ]);
 
         $this->end_controls_section();
     }
 
-    /** تب محتوا: انتخاب ویژگی‌ها */
-    private function register_items_controls(): void {
+    /* =====================================================================
+     * محتوا — بخش دوم: چیدمان (فلکس/گرید کامل برای هر دو سطر)
+     * =================================================================== */
+
+    private function register_layout_controls(): void {
+        $start = is_rtl() ? 'right' : 'left';
+        $end   = is_rtl() ? 'left' : 'right';
+
+        $direction_options = [
+            'row' => [
+                'title' => __('سطری', 'almasara-widgets'),
+                'icon'  => 'eicon-arrow-' . $end,
+            ],
+            'column' => [
+                'title' => __('ستونی', 'almasara-widgets'),
+                'icon'  => 'eicon-arrow-down',
+            ],
+            'row-reverse' => [
+                'title' => __('سطری معکوس', 'almasara-widgets'),
+                'icon'  => 'eicon-arrow-' . $start,
+            ],
+            'column-reverse' => [
+                'title' => __('ستونی معکوس', 'almasara-widgets'),
+                'icon'  => 'eicon-arrow-up',
+            ],
+        ];
+
+        $justify_options = [
+            'flex-start' => [
+                'title' => __('ابتدا', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-start-h',
+            ],
+            'center' => [
+                'title' => __('وسط', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-center-h',
+            ],
+            'flex-end' => [
+                'title' => __('انتها', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-end-h',
+            ],
+            'space-between' => [
+                'title' => __('فاصله بین', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-space-between-h',
+            ],
+            'space-around' => [
+                'title' => __('فاصله اطراف', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-space-around-h',
+            ],
+            'space-evenly' => [
+                'title' => __('فاصله مساوی', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-justify-space-evenly-h',
+            ],
+        ];
+
+        $align_options = [
+            'flex-start' => [
+                'title' => __('ابتدا', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-align-start-v',
+            ],
+            'center' => [
+                'title' => __('وسط', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-align-center-v',
+            ],
+            'flex-end' => [
+                'title' => __('انتها', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-align-end-v',
+            ],
+            'stretch' => [
+                'title' => __('کشیده', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-align-stretch-v',
+            ],
+        ];
+
+        $wrap_options = [
+            'nowrap' => [
+                'title' => __('در یک خط بماند', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-nowrap',
+            ],
+            'wrap' => [
+                'title' => __('به چند خط تقسیم شود', 'almasara-widgets'),
+                'icon'  => 'eicon-flex eicon-wrap',
+            ],
+        ];
+
+        $this->start_controls_section('section_layout', [
+            'label' => __('چیدمان', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_CONTENT,
+        ]);
+
+        // ---------------- سطر معرفی ----------------
+        $this->add_control('heading_header_layout', [
+            'label' => __('سطر معرفی', 'almasara-widgets'),
+            'type'  => Controls_Manager::HEADING,
+        ]);
+
+        $this->add_responsive_control('header_direction', [
+            'label'     => __('جهت', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $direction_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header' => 'flex-direction: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('header_justify', [
+            'label'     => __('تراز کردن محتوا', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $justify_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header' => 'justify-content: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('header_align', [
+            'label'     => __('تراز موارد', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $align_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header' => 'align-items: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('header_gaps', [
+            'label'      => __('شکاف‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::GAPS,
+            'size_units' => ['px', '%', 'em', 'rem'],
+            'default'    => ['unit' => 'px'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__header' => 'gap: {{ROW}}{{UNIT}} {{COLUMN}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('header_wrap', [
+            'label'       => __('Wrap', 'almasara-widgets'),
+            'type'        => Controls_Manager::CHOOSE,
+            'options'     => $wrap_options,
+            'description' => __('اقلام داخل سطر می‌توانند در یک خط باقی بمانند (No wrap)، یا به چند خط تقسیم شوند (Wrap).', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-paw__header' => 'flex-wrap: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('header_spacing', [
+            'label'      => __('فاصله تا آیتم‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 100]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__header' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        // ---------------- سطر آیتم‌ها ----------------
+        $this->add_control('heading_items_layout', [
+            'label'     => __('سطر آیتم‌ها', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('items_display', [
+            'label'   => __('نوع چیدمان', 'almasara-widgets'),
+            'type'    => Controls_Manager::SELECT,
+            'default' => 'grid',
+            'options' => [
+                'grid' => __('گرید', 'almasara-widgets'),
+                'flex' => __('فلکس', 'almasara-widgets'),
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__items' => 'display: {{VALUE}};',
+            ],
+        ]);
+
+        // گرید
+        $this->add_responsive_control('grid_columns', [
+            'label'          => __('ستون‌ها', 'almasara-widgets'),
+            'type'           => Controls_Manager::SLIDER,
+            'size_units'     => ['fr'],
+            'range'          => ['fr' => ['min' => 1, 'max' => 12]],
+            'default'        => ['size' => 3, 'unit' => 'fr'],
+            'tablet_default' => ['size' => 2, 'unit' => 'fr'],
+            'mobile_default' => ['size' => 1, 'unit' => 'fr'],
+            'selectors'      => [
+                '{{WRAPPER}} .amw-paw__items' => 'grid-template-columns: repeat({{SIZE}}, minmax(0, 1fr));',
+            ],
+            'condition'      => ['items_display' => 'grid'],
+        ]);
+
+        $this->add_responsive_control('grid_rows', [
+            'label'      => __('ردیف‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['fr'],
+            'range'      => ['fr' => ['min' => 1, 'max' => 12]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__items' => 'grid-template-rows: repeat({{SIZE}}, minmax(0, 1fr));',
+            ],
+            'condition'  => ['items_display' => 'grid'],
+        ]);
+
+        $this->add_responsive_control('grid_template', [
+            'label'       => __('قالب ستون سفارشی', 'almasara-widgets'),
+            'type'        => Controls_Manager::TEXT,
+            'placeholder' => '2fr 1fr 1fr',
+            'description' => __('grid-template-columns دلخواه؛ روی «ستون‌ها» اولویت دارد.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-paw__items' => 'grid-template-columns: {{VALUE}};',
+            ],
+            'condition'   => ['items_display' => 'grid'],
+        ]);
+
+        $this->add_responsive_control('grid_auto_flow', [
+            'label'     => __('جهت چینش گرید', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => '',
+            'options'   => [
+                ''          => __('پیش‌فرض', 'almasara-widgets'),
+                'row'       => __('سطری', 'almasara-widgets'),
+                'column'    => __('ستونی', 'almasara-widgets'),
+                'row dense' => __('سطری فشرده', 'almasara-widgets'),
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__items' => 'grid-auto-flow: {{VALUE}};',
+            ],
+            'condition' => ['items_display' => 'grid'],
+        ]);
+
+        // فلکس
+        $this->add_responsive_control('items_direction', [
+            'label'     => __('جهت', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $direction_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__items' => 'flex-direction: {{VALUE}};',
+            ],
+            'condition' => ['items_display' => 'flex'],
+        ]);
+
+        // مشترک
+        $this->add_responsive_control('items_justify', [
+            'label'     => __('تراز کردن محتوا', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $justify_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__items' => 'justify-content: {{VALUE}}; justify-items: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('items_align', [
+            'label'     => __('تراز موارد', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => $align_options,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__items' => 'align-items: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('items_gaps', [
+            'label'      => __('شکاف‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::GAPS,
+            'size_units' => ['px', '%', 'em', 'rem'],
+            'default'    => [
+                'row'      => '16',
+                'column'   => '16',
+                'unit'     => 'px',
+                'isLinked' => true,
+            ],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__items' => 'gap: {{ROW}}{{UNIT}} {{COLUMN}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('items_wrap', [
+            'label'       => __('Wrap', 'almasara-widgets'),
+            'type'        => Controls_Manager::CHOOSE,
+            'options'     => $wrap_options,
+            'default'     => 'wrap',
+            'description' => __('اقلام داخل سطر می‌توانند در یک خط باقی بمانند (No wrap)، یا به چند خط تقسیم شوند (Wrap).', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-paw__items' => 'flex-wrap: {{VALUE}};',
+            ],
+            'condition'   => ['items_display' => 'flex'],
+        ]);
+
+        $this->add_responsive_control('item_flex_basis', [
+            'label'      => __('عرض هر آیتم', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', '%'],
+            'range'      => [
+                'px' => ['min' => 50, 'max' => 800],
+                '%'  => ['min' => 5, 'max' => 100],
+            ],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__items' => '--amw-item-basis: {{SIZE}}{{UNIT}};',
+            ],
+            'condition'  => ['items_display' => 'flex'],
+        ]);
+
+        $this->add_control('item_flex_grow', [
+            'label'        => __('آیتم‌ها فضای خالی را پر کنند', 'almasara-widgets'),
+            'type'         => Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'return_value' => '1',
+            'selectors'    => [
+                '{{WRAPPER}} .amw-paw__items .amw-paw__item' => 'flex-grow: {{VALUE}};',
+            ],
+            'condition'    => ['items_display' => 'flex'],
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    /* =====================================================================
+     * محتوا — بخش سوم: ویژگی‌ها
+     * =================================================================== */
+
+    private function register_items_content_controls(): void {
         $this->start_controls_section('section_items', [
             'label' => __('ویژگی‌ها', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_CONTENT,
+        ]);
+
+        $this->add_control('items_count', [
+            'label'       => __('تعداد آیتم‌های نمایشی', 'almasara-widgets'),
+            'type'        => Controls_Manager::NUMBER,
+            'min'         => 0,
+            'max'         => 30,
+            'default'     => 6,
+            'description' => __('اول آیتم‌های انتخابی شما نمایش داده می‌شوند؛ اگر محصول آن‌ها را نداشت، به‌طور خودکار از سایر ویژگی‌های خود محصول تا رسیدن به این تعداد پر می‌شود. ۰ یعنی فقط آیتم‌های انتخابی.', 'almasara-widgets'),
         ]);
 
         $repeater = new Repeater();
@@ -177,11 +462,11 @@ class Product_Attributes extends Widget_Base {
         ]);
 
         $repeater->add_control('attribute', [
-            'label'       => __('ویژگی', 'almasara-widgets'),
-            'type'        => Controls_Manager::SELECT,
-            'options'     => $this->get_attribute_options(),
-            'default'     => 'custom',
-            'condition'   => ['source' => 'attribute'],
+            'label'     => __('ویژگی', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'options'   => $this->get_attribute_options(),
+            'default'   => 'custom',
+            'condition' => ['source' => 'attribute'],
         ]);
 
         $repeater->add_control('custom_attribute', [
@@ -214,7 +499,7 @@ class Product_Attributes extends Widget_Base {
         ]);
 
         $this->add_control('items', [
-            'label'       => __('آیتم‌ها', 'almasara-widgets'),
+            'label'       => __('آیتم‌های انتخابی', 'almasara-widgets'),
             'type'        => Controls_Manager::REPEATER,
             'fields'      => $repeater->get_controls(),
             'title_field' => '<# var map = {attribute: "ویژگی", category: "دسته‌بندی", tag: "برچسب‌ها", sku: "شناسه محصول", rating: "امتیاز خریداران", stock: "موجودی", weight: "وزن", dimensions: "ابعاد", custom_meta: "فیلد دلخواه"}; #>{{{ label || map[source] || source }}}',
@@ -227,10 +512,10 @@ class Product_Attributes extends Widget_Base {
         ]);
 
         $this->add_control('hide_empty', [
-            'label'       => __('مخفی کردن آیتم‌های خالی', 'almasara-widgets'),
-            'type'        => Controls_Manager::SWITCHER,
-            'default'     => 'yes',
-            'separator'   => 'before',
+            'label'     => __('مخفی کردن آیتم‌های خالی', 'almasara-widgets'),
+            'type'      => Controls_Manager::SWITCHER,
+            'default'   => 'yes',
+            'separator' => 'before',
         ]);
 
         $this->add_control('value_separator', [
@@ -250,7 +535,10 @@ class Product_Attributes extends Widget_Base {
         $this->end_controls_section();
     }
 
-    /** تب محتوا: لینک‌دهی */
+    /* =====================================================================
+     * محتوا — بخش چهارم: لینک
+     * =================================================================== */
+
     private function register_link_controls(): void {
         $this->start_controls_section('section_link', [
             'label' => __('لینک', 'almasara-widgets'),
@@ -265,7 +553,7 @@ class Product_Attributes extends Widget_Base {
                 'none'   => __('هیچ‌کدام', 'almasara-widgets'),
                 'items'  => __('آیتم‌ها', 'almasara-widgets'),
                 'title'  => __('عنوان', 'almasara-widgets'),
-                'header' => __('کل سطر اول', 'almasara-widgets'),
+                'header' => __('کل سطر معرفی', 'almasara-widgets'),
                 'widget' => __('کل ویجت', 'almasara-widgets'),
             ],
         ]);
@@ -303,340 +591,24 @@ class Product_Attributes extends Widget_Base {
         $this->end_controls_section();
     }
 
-    /** تب محتوا: پیش‌نمایش در ادیتور */
-    private function register_preview_controls(): void {
-        $this->start_controls_section('section_preview', [
-            'label' => __('پیش‌نمایش (فقط ادیتور)', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_CONTENT,
-        ]);
+    /* =====================================================================
+     * استایل — تب اول: معرفی
+     * =================================================================== */
 
-        $this->add_control('preview_product_id', [
-            'label'       => __('شناسه محصول برای پیش‌نمایش', 'almasara-widgets'),
-            'type'        => Controls_Manager::NUMBER,
-            'description' => __('در صفحه محصول، ویجت خودکار محصول جاری را نشان می‌دهد. این فیلد فقط برای پیش‌نمایش در ادیتور روی صفحات غیرمحصول است؛ خالی بماند تا آخرین محصول استفاده شود.', 'almasara-widgets'),
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: چیدمان آیتم‌ها (فلکس/گرید) */
-    private function register_layout_style_controls(): void {
-        $this->start_controls_section('section_style_layout', [
-            'label' => __('چیدمان آیتم‌ها', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_STYLE,
-        ]);
-
-        $this->add_control('items_display', [
-            'label'     => __('نوع چیدمان', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => 'grid',
-            'options'   => [
-                'grid' => __('گرید', 'almasara-widgets'),
-                'flex' => __('فلکس', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'display: {{VALUE}};',
-            ],
-        ]);
-
-        // ---------- کنترل‌های گرید ----------
-        $this->add_responsive_control('grid_columns', [
-            'label'     => __('تعداد ستون', 'almasara-widgets'),
-            'type'      => Controls_Manager::NUMBER,
-            'min'       => 1,
-            'max'       => 12,
-            'default'   => 3,
-            'tablet_default' => 2,
-            'mobile_default' => 1,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'grid-template-columns: repeat({{VALUE}}, minmax(0, 1fr));',
-            ],
-            'condition' => ['items_display' => 'grid'],
-        ]);
-
-        $this->add_responsive_control('grid_template', [
-            'label'       => __('قالب ستون سفارشی', 'almasara-widgets'),
-            'type'        => Controls_Manager::TEXT,
-            'placeholder' => '2fr 1fr 1fr',
-            'description' => __('در صورت نیاز به grid-template-columns دلخواه؛ روی «تعداد ستون» اولویت دارد.', 'almasara-widgets'),
-            'selectors'   => [
-                '{{WRAPPER}} .amw-paw__items' => 'grid-template-columns: {{VALUE}};',
-            ],
-            'condition'   => ['items_display' => 'grid'],
-        ]);
-
-        $this->add_responsive_control('grid_auto_flow', [
-            'label'     => __('جهت چینش گرید', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => '',
-            'options'   => [
-                ''             => __('پیش‌فرض', 'almasara-widgets'),
-                'row'          => __('سطری', 'almasara-widgets'),
-                'column'       => __('ستونی', 'almasara-widgets'),
-                'row dense'    => __('سطری فشرده', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'grid-auto-flow: {{VALUE}};',
-            ],
-            'condition' => ['items_display' => 'grid'],
-        ]);
-
-        // ---------- کنترل‌های فلکس ----------
-        $this->add_responsive_control('flex_direction', [
-            'label'     => __('جهت', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => 'row',
-            'options'   => [
-                'row'            => __('سطری', 'almasara-widgets'),
-                'row-reverse'    => __('سطری معکوس', 'almasara-widgets'),
-                'column'         => __('ستونی', 'almasara-widgets'),
-                'column-reverse' => __('ستونی معکوس', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'flex-direction: {{VALUE}};',
-            ],
-            'condition' => ['items_display' => 'flex'],
-        ]);
-
-        $this->add_responsive_control('flex_wrap', [
-            'label'     => __('شکستن سطر', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => 'wrap',
-            'options'   => [
-                'nowrap'       => __('نشکند', 'almasara-widgets'),
-                'wrap'         => __('بشکند', 'almasara-widgets'),
-                'wrap-reverse' => __('بشکند (معکوس)', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'flex-wrap: {{VALUE}};',
-            ],
-            'condition' => ['items_display' => 'flex'],
-        ]);
-
-        $this->add_responsive_control('justify_content', [
-            'label'     => __('چینش افقی (justify)', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => '',
-            'options'   => [
-                ''              => __('پیش‌فرض', 'almasara-widgets'),
-                'flex-start'    => __('ابتدا', 'almasara-widgets'),
-                'center'        => __('وسط', 'almasara-widgets'),
-                'flex-end'      => __('انتها', 'almasara-widgets'),
-                'space-between' => __('فاصله بین', 'almasara-widgets'),
-                'space-around'  => __('فاصله اطراف', 'almasara-widgets'),
-                'space-evenly'  => __('فاصله مساوی', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'justify-content: {{VALUE}}; justify-items: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_responsive_control('align_items', [
-            'label'     => __('چینش عمودی (align)', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => '',
-            'options'   => [
-                ''           => __('پیش‌فرض', 'almasara-widgets'),
-                'flex-start' => __('ابتدا', 'almasara-widgets'),
-                'center'     => __('وسط', 'almasara-widgets'),
-                'flex-end'   => __('انتها', 'almasara-widgets'),
-                'stretch'    => __('کشیده', 'almasara-widgets'),
-            ],
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items' => 'align-items: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_responsive_control('item_flex_basis', [
-            'label'      => __('عرض هر آیتم', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', '%'],
-            'range'      => [
-                'px' => ['min' => 50, 'max' => 800],
-                '%'  => ['min' => 5, 'max' => 100],
-            ],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__items' => '--amw-item-basis: {{SIZE}}{{UNIT}};',
-            ],
-            'condition'  => ['items_display' => 'flex'],
-        ]);
-
-        $this->add_control('item_flex_grow', [
-            'label'     => __('آیتم‌ها فضای خالی را پر کنند', 'almasara-widgets'),
-            'type'      => Controls_Manager::SWITCHER,
-            'default'   => 'yes',
-            'return_value' => '1',
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__items .amw-paw__item' => 'flex-grow: {{VALUE}};',
-            ],
-            'condition' => ['items_display' => 'flex'],
-        ]);
-
-        // ---------- فاصله‌ها (مشترک فلکس و گرید) ----------
-        $this->add_responsive_control('items_gap', [
-            'label'      => __('فاصله ستون‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', 'em', 'rem'],
-            'range'      => ['px' => ['min' => 0, 'max' => 100]],
-            'default'    => ['size' => 16, 'unit' => 'px'],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__items' => 'column-gap: {{SIZE}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->add_responsive_control('items_row_gap', [
-            'label'      => __('فاصله سطرها', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', 'em', 'rem'],
-            'range'      => ['px' => ['min' => 0, 'max' => 100]],
-            'default'    => ['size' => 16, 'unit' => 'px'],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__items' => 'row-gap: {{SIZE}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: سطر اول */
-    private function register_header_style_controls(): void {
-        $this->start_controls_section('section_style_header', [
-            'label' => __('سطر اول', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_STYLE,
-        ]);
-
-        $this->add_responsive_control('header_gap', [
-            'label'      => __('فاصله بین عناصر', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', 'em'],
-            'range'      => ['px' => ['min' => 0, 'max' => 60]],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__header' => 'gap: {{SIZE}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->add_responsive_control('header_spacing', [
-            'label'      => __('فاصله تا آیتم‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', 'em'],
-            'range'      => ['px' => ['min' => 0, 'max' => 100]],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__header' => 'margin-bottom: {{SIZE}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->add_responsive_control('header_padding', [
-            'label'      => __('پدینگ', 'almasara-widgets'),
-            'type'       => Controls_Manager::DIMENSIONS,
-            'size_units' => ['px', 'em', '%'],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__header' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->start_controls_tabs('header_tabs');
-
-        $this->start_controls_tab('header_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
-
-        $this->add_group_control(Group_Control_Background::get_type(), [
-            'name'     => 'header_background',
-            'types'    => ['classic', 'gradient'],
-            'selector' => '{{WRAPPER}} .amw-paw__header',
-        ]);
-
-        $this->add_group_control(Group_Control_Border::get_type(), [
-            'name'     => 'header_border',
-            'selector' => '{{WRAPPER}} .amw-paw__header',
-        ]);
-
-        $this->end_controls_tab();
-
-        $this->start_controls_tab('header_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
-
-        $this->add_group_control(Group_Control_Background::get_type(), [
-            'name'     => 'header_background_hover',
-            'types'    => ['classic', 'gradient'],
-            'selector' => '{{WRAPPER}} .amw-paw__header:hover',
-        ]);
-
-        $this->add_control('header_border_hover_color', [
-            'label'     => __('رنگ کادر', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__header:hover' => 'border-color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->end_controls_tab();
-        $this->end_controls_tabs();
-
-        $this->add_responsive_control('header_radius', [
-            'label'      => __('گردی گوشه‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::DIMENSIONS,
-            'size_units' => ['px', '%'],
-            'separator'  => 'before',
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__header' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
-            ],
-        ]);
-
-        $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
-            'name'     => 'header_shadow',
-            'selector' => '{{WRAPPER}} .amw-paw__header',
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: عنوان */
-    private function register_title_style_controls(): void {
-        $this->start_controls_section('section_style_title', [
-            'label' => __('عنوان', 'almasara-widgets'),
+    private function register_intro_style_controls(): void {
+        $this->start_controls_section('section_style_intro', [
+            'label' => __('معرفی', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_STYLE,
         ]);
 
         $this->add_group_control(Group_Control_Typography::get_type(), [
             'name'     => 'title_typography',
+            'label'    => __('تایپوگرافی عنوان', 'almasara-widgets'),
             'selector' => '{{WRAPPER}} .amw-paw__title',
         ]);
 
-        $this->start_controls_tabs('title_tabs');
-
-        $this->start_controls_tab('title_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
-        $this->add_control('title_color', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__title' => 'color: {{VALUE}};',
-            ],
-        ]);
-        $this->end_controls_tab();
-
-        $this->start_controls_tab('title_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
-        $this->add_control('title_color_hover', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__title' => 'color: {{VALUE}};',
-            ],
-        ]);
-        $this->end_controls_tab();
-
-        $this->end_controls_tabs();
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: خط جداکننده */
-    private function register_divider_style_controls(): void {
-        $this->start_controls_section('section_style_divider', [
-            'label'     => __('خط جداکننده', 'almasara-widgets'),
-            'tab'       => Controls_Manager::TAB_STYLE,
-            'condition' => ['show_divider' => 'yes'],
-        ]);
-
         $this->add_control('divider_style', [
-            'label'     => __('سبک خط', 'almasara-widgets'),
+            'label'     => __('نوع خط جداکننده', 'almasara-widgets'),
             'type'      => Controls_Manager::SELECT,
             'default'   => 'dashed',
             'options'   => [
@@ -648,6 +620,7 @@ class Product_Attributes extends Widget_Base {
             'selectors' => [
                 '{{WRAPPER}} .amw-paw__divider' => 'border-top-style: {{VALUE}};',
             ],
+            'condition' => ['show_divider' => 'yes'],
         ]);
 
         $this->add_responsive_control('divider_weight', [
@@ -658,57 +631,11 @@ class Product_Attributes extends Widget_Base {
             'selectors'  => [
                 '{{WRAPPER}} .amw-paw__divider' => 'border-top-width: {{SIZE}}{{UNIT}};',
             ],
-        ]);
-
-        $this->add_control('divider_color', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__divider' => 'border-top-color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_control('divider_color_hover', [
-            'label'     => __('رنگ در هاور', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__divider' => 'border-top-color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_control('divider_flexible', [
-            'label'       => __('عرض خودکار (پرکردن فضا)', 'almasara-widgets'),
-            'type'        => Controls_Manager::SWITCHER,
-            'default'     => 'yes',
-        ]);
-
-        $this->add_responsive_control('divider_width', [
-            'label'      => __('عرض ثابت', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px', '%'],
-            'range'      => [
-                'px' => ['min' => 10, 'max' => 1000],
-                '%'  => ['min' => 1, 'max' => 100],
-            ],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__divider.amw-fixed' => 'width: {{SIZE}}{{UNIT}};',
-            ],
-            'condition'  => ['divider_flexible' => ''],
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: آیکون */
-    private function register_icon_style_controls(): void {
-        $this->start_controls_section('section_style_icon', [
-            'label'     => __('آیکون', 'almasara-widgets'),
-            'tab'       => Controls_Manager::TAB_STYLE,
-            'condition' => ['icon_type!' => 'none'],
+            'condition'  => ['show_divider' => 'yes'],
         ]);
 
         $this->add_responsive_control('icon_size', [
-            'label'      => __('اندازه', 'almasara-widgets'),
+            'label'      => __('سایز آیکون', 'almasara-widgets'),
             'type'       => Controls_Manager::SLIDER,
             'size_units' => ['px', 'em'],
             'range'      => ['px' => ['min' => 8, 'max' => 200]],
@@ -718,105 +645,195 @@ class Product_Attributes extends Widget_Base {
             ],
         ]);
 
-        $this->add_control('svg_color_mode', [
-            'label'       => __('نحوه رنگ‌آمیزی SVG', 'almasara-widgets'),
-            'type'        => Controls_Manager::SELECT,
-            'default'     => 'original',
-            'options'     => [
-                'original' => __('رنگ اصلی فایل (بدون تغییر)', 'almasara-widgets'),
-                'auto'     => __('هوشمند (fill و stroke موجود بازرنگ شوند)', 'almasara-widgets'),
-                'fill'     => __('فقط fill', 'almasara-widgets'),
-                'stroke'   => __('فقط stroke', 'almasara-widgets'),
-            ],
-            'description' => __('بعضی SVGها با stroke رنگ گرفته‌اند و بعضی با fill یا path. حالت «هوشمند» فقط همان صفتی را که در فایل رنگ دارد بازرنگ می‌کند تا آیکون خراب نشود. اگر نتیجه درست نبود fill یا stroke را دستی انتخاب کنید.', 'almasara-widgets'),
-        ]);
-
-        $this->start_controls_tabs('icon_tabs');
-
-        $this->start_controls_tab('icon_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
-        $this->add_control('icon_color', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__icon' => '--amw-icon-color: {{VALUE}}; color: {{VALUE}};',
-            ],
-        ]);
-        $this->add_control('icon_bg_color', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__icon' => 'background-color: {{VALUE}};',
-            ],
-        ]);
-        $this->end_controls_tab();
-
-        $this->start_controls_tab('icon_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
-        $this->add_control('icon_color_hover', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon' => '--amw-icon-color: {{VALUE}}; color: {{VALUE}};',
-            ],
-        ]);
-        $this->add_control('icon_bg_color_hover', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon' => 'background-color: {{VALUE}};',
-            ],
-        ]);
-        $this->add_responsive_control('icon_rotate_hover', [
-            'label'      => __('چرخش در هاور', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['deg'],
-            'range'      => ['deg' => ['min' => -180, 'max' => 180]],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon' => 'transform: rotate({{SIZE}}deg);',
-            ],
-        ]);
-        $this->end_controls_tab();
-
-        $this->end_controls_tabs();
-
         $this->add_responsive_control('icon_padding', [
-            'label'      => __('پدینگ', 'almasara-widgets'),
+            'label'      => __('پدینگ آیکون', 'almasara-widgets'),
             'type'       => Controls_Manager::DIMENSIONS,
             'size_units' => ['px', 'em'],
-            'separator'  => 'before',
             'selectors'  => [
                 '{{WRAPPER}} .amw-paw__icon' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
         ]);
 
-        $this->add_group_control(Group_Control_Border::get_type(), [
-            'name'     => 'icon_border',
-            'selector' => '{{WRAPPER}} .amw-paw__icon',
+        /*
+         * رنگ‌های سطر معرفی — دو تب عادی/هاور.
+         * رنگ SVG خودکار اعمال می‌شود: کنترل «رنگ آیکون» فقط بخش‌هایی را که
+         * در فایل fill دارند بازرنگ می‌کند و «رنگ خطوط آیکون» فقط بخش‌های
+         * stroke را. اگر خالی بمانند، رنگ اصلی فایل حفظ می‌شود.
+         */
+        $this->add_control('intro_colors_divider', [
+            'type' => Controls_Manager::DIVIDER,
         ]);
 
-        $this->add_responsive_control('icon_radius', [
-            'label'      => __('گردی گوشه‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::DIMENSIONS,
-            'size_units' => ['px', '%'],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__icon' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+        $this->start_controls_tabs('intro_color_tabs');
+
+        $this->start_controls_tab('intro_colors_normal', ['label' => __('عادی', 'almasara-widgets')]);
+
+        $this->add_control('title_color', [
+            'label'     => __('رنگ عنوان', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__title' => 'color: {{VALUE}};',
             ],
         ]);
+
+        $this->add_control('divider_color', [
+            'label'     => __('رنگ خط جداکننده', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__divider' => 'border-top-color: {{VALUE}};',
+            ],
+            'condition' => ['show_divider' => 'yes'],
+        ]);
+
+        $this->add_control('icon_fill_color', [
+            'label'       => __('رنگ آیکون', 'almasara-widgets'),
+            'type'        => Controls_Manager::COLOR,
+            'description' => __('بخش‌های توپُر (fill) را بازرنگ می‌کند؛ خالی بماند تا رنگ اصلی فایل حفظ شود.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-paw__icon' => 'color: {{VALUE}};',
+                '{{WRAPPER}} .amw-paw__icon svg [fill]:not([fill="none"]):not([fill="transparent"])' => 'fill: {{VALUE}};',
+                '{{WRAPPER}} .amw-paw__icon svg :is(path,circle,rect,ellipse,polygon,polyline,line):not([fill]):not([stroke])' => 'fill: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('icon_stroke_color', [
+            'label'       => __('رنگ خطوط آیکون', 'almasara-widgets'),
+            'type'        => Controls_Manager::COLOR,
+            'description' => __('بخش‌های خطی (stroke) را بازرنگ می‌کند؛ خالی بماند تا رنگ اصلی فایل حفظ شود.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"])' => 'stroke: {{VALUE}};',
+            ],
+        ]);
+
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('intro_colors_hover', ['label' => __('هاور', 'almasara-widgets')]);
+
+        $this->add_control('title_color_hover', [
+            'label'     => __('رنگ عنوان', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__title' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('divider_color_hover', [
+            'label'     => __('رنگ خط جداکننده', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__divider' => 'border-top-color: {{VALUE}};',
+            ],
+            'condition' => ['show_divider' => 'yes'],
+        ]);
+
+        $this->add_control('icon_fill_color_hover', [
+            'label'     => __('رنگ آیکون', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon' => 'color: {{VALUE}};',
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon svg [fill]:not([fill="none"]):not([fill="transparent"])' => 'fill: {{VALUE}};',
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon svg :is(path,circle,rect,ellipse,polygon,polyline,line):not([fill]):not([stroke])' => 'fill: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('icon_stroke_color_hover', [
+            'label'     => __('رنگ خطوط آیکون', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__header:hover .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"])' => 'stroke: {{VALUE}};',
+            ],
+        ]);
+
+        $this->end_controls_tab();
+        $this->end_controls_tabs();
 
         $this->end_controls_section();
     }
 
-    /** تب استایل: باکس آیتم‌ها */
-    private function register_item_box_style_controls(): void {
-        $this->start_controls_section('section_style_items', [
-            'label' => __('باکس آیتم‌ها', 'almasara-widgets'),
+    /* =====================================================================
+     * استایل — تب دوم: آیتم
+     * =================================================================== */
+
+    private function register_item_style_controls(): void {
+        $this->start_controls_section('section_style_item', [
+            'label' => __('آیتم', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_STYLE,
         ]);
 
+        // ---------------- تب‌های عنوان / مقدار ----------------
+        $this->start_controls_tabs('item_text_tabs');
+
+        $this->start_controls_tab('item_tab_label', ['label' => __('عنوان', 'almasara-widgets')]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'label_typography',
+            'selector' => '{{WRAPPER}} .amw-paw__label',
+        ]);
+
+        $this->add_control('label_color', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__label' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_group_control(Group_Control_Text_Shadow::get_type(), [
+            'name'     => 'label_shadow',
+            'selector' => '{{WRAPPER}} .amw-paw__label',
+        ]);
+
+        $this->add_control('label_color_hover', [
+            'label'     => __('رنگ هاور', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__item:hover .amw-paw__label' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('item_tab_value', ['label' => __('مقدار', 'almasara-widgets')]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'value_typography',
+            'selector' => '{{WRAPPER}} .amw-paw__value',
+        ]);
+
+        $this->add_control('value_color', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__value' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_group_control(Group_Control_Text_Shadow::get_type(), [
+            'name'     => 'value_shadow',
+            'selector' => '{{WRAPPER}} .amw-paw__value',
+        ]);
+
+        $this->add_control('value_color_hover', [
+            'label'     => __('رنگ هاور', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__item:hover .amw-paw__value' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->end_controls_tab();
+        $this->end_controls_tabs();
+
+        // ---------------- باکس آیتم ----------------
+        $this->add_control('item_box_divider', [
+            'type' => Controls_Manager::DIVIDER,
+        ]);
+
         $this->add_control('item_layout', [
-            'label'     => __('چیدمان داخلی آیتم', 'almasara-widgets'),
-            'type'      => Controls_Manager::SELECT,
-            'default'   => 'column',
-            'options'   => [
+            'label'   => __('چیدمان داخلی آیتم', 'almasara-widgets'),
+            'type'    => Controls_Manager::SELECT,
+            'default' => 'column',
+            'options' => [
                 'column'      => __('عنوان بالا، مقدار پایین', 'almasara-widgets'),
                 'row'         => __('کنار هم', 'almasara-widgets'),
                 'row-between' => __('کنار هم با فاصله', 'almasara-widgets'),
@@ -855,142 +872,87 @@ class Product_Attributes extends Widget_Base {
             ],
         ]);
 
-        $this->start_controls_tabs('item_tabs');
+        // ---------------- تب‌های عادی / هاور ----------------
+        $this->start_controls_tabs('item_box_tabs');
 
-        $this->start_controls_tab('item_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->start_controls_tab('item_box_normal', ['label' => __('عادی', 'almasara-widgets')]);
 
         $this->add_group_control(Group_Control_Background::get_type(), [
             'name'     => 'item_background',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
             'types'    => ['classic', 'gradient'],
             'selector' => '{{WRAPPER}} .amw-paw__item',
         ]);
 
         $this->add_group_control(Group_Control_Border::get_type(), [
             'name'     => 'item_border',
+            'label'    => __('حاشیه', 'almasara-widgets'),
             'selector' => '{{WRAPPER}} .amw-paw__item',
+        ]);
+
+        $this->add_responsive_control('item_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__item' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
         ]);
 
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
             'name'     => 'item_shadow',
+            'label'    => __('سایه', 'almasara-widgets'),
             'selector' => '{{WRAPPER}} .amw-paw__item',
         ]);
 
         $this->end_controls_tab();
 
-        $this->start_controls_tab('item_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->start_controls_tab('item_box_hover', ['label' => __('هاور', 'almasara-widgets')]);
 
         $this->add_group_control(Group_Control_Background::get_type(), [
             'name'     => 'item_background_hover',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
             'types'    => ['classic', 'gradient'],
             'selector' => '{{WRAPPER}} .amw-paw__item:hover',
         ]);
 
         $this->add_control('item_border_color_hover', [
-            'label'     => __('رنگ کادر', 'almasara-widgets'),
+            'label'     => __('رنگ حاشیه', 'almasara-widgets'),
             'type'      => Controls_Manager::COLOR,
             'selectors' => [
                 '{{WRAPPER}} .amw-paw__item:hover' => 'border-color: {{VALUE}};',
             ],
         ]);
 
+        $this->add_responsive_control('item_radius_hover', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-paw__item:hover' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ]);
+
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
             'name'     => 'item_shadow_hover',
+            'label'    => __('سایه', 'almasara-widgets'),
             'selector' => '{{WRAPPER}} .amw-paw__item:hover',
         ]);
 
-        $this->add_responsive_control('item_hover_offset', [
-            'label'      => __('جابه‌جایی عمودی در هاور', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px'],
-            'range'      => ['px' => ['min' => -20, 'max' => 20]],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__item:hover' => 'transform: translateY({{SIZE}}{{UNIT}});',
-            ],
-        ]);
-
         $this->end_controls_tab();
-
         $this->end_controls_tabs();
 
-        $this->add_responsive_control('item_radius', [
-            'label'      => __('گردی گوشه‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::DIMENSIONS,
-            'size_units' => ['px', '%'],
-            'separator'  => 'before',
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__item' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
-            ],
+        $this->add_control('item_transition_divider', [
+            'type' => Controls_Manager::DIVIDER,
         ]);
 
         $this->add_control('item_transition', [
-            'label'      => __('مدت انیمیشن (میلی‌ثانیه)', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'range'      => ['px' => ['min' => 0, 'max' => 2000]],
-            'default'    => ['size' => 300],
-            'selectors'  => [
-                '{{WRAPPER}} .amw-paw__item, {{WRAPPER}} .amw-paw__icon, {{WRAPPER}} .amw-paw__title, {{WRAPPER}} .amw-paw__divider' => 'transition: all {{SIZE}}ms ease;',
-            ],
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: عنوان آیتم (نام ویژگی) */
-    private function register_label_style_controls(): void {
-        $this->start_controls_section('section_style_label', [
-            'label' => __('عنوان آیتم', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_STYLE,
-        ]);
-
-        $this->add_group_control(Group_Control_Typography::get_type(), [
-            'name'     => 'label_typography',
-            'selector' => '{{WRAPPER}} .amw-paw__label',
-        ]);
-
-        $this->add_control('label_color', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
+            'label'     => __('مدت زمان انیمیشن (میلی‌ثانیه)', 'almasara-widgets'),
+            'type'      => Controls_Manager::SLIDER,
+            'range'     => ['px' => ['min' => 0, 'max' => 2000]],
+            'default'   => ['size' => 300],
             'selectors' => [
-                '{{WRAPPER}} .amw-paw__label' => 'color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_control('label_color_hover', [
-            'label'     => __('رنگ در هاور آیتم', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__item:hover .amw-paw__label' => 'color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->end_controls_section();
-    }
-
-    /** تب استایل: مقدار آیتم */
-    private function register_value_style_controls(): void {
-        $this->start_controls_section('section_style_value', [
-            'label' => __('مقدار آیتم', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_STYLE,
-        ]);
-
-        $this->add_group_control(Group_Control_Typography::get_type(), [
-            'name'     => 'value_typography',
-            'selector' => '{{WRAPPER}} .amw-paw__value',
-        ]);
-
-        $this->add_control('value_color', [
-            'label'     => __('رنگ', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__value' => 'color: {{VALUE}};',
-            ],
-        ]);
-
-        $this->add_control('value_color_hover', [
-            'label'     => __('رنگ در هاور آیتم', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => [
-                '{{WRAPPER}} .amw-paw__item:hover .amw-paw__value' => 'color: {{VALUE}};',
+                '{{WRAPPER}} .amw-paw__item, {{WRAPPER}} .amw-paw__icon, {{WRAPPER}} .amw-paw__icon svg *, {{WRAPPER}} .amw-paw__title, {{WRAPPER}} .amw-paw__divider' => 'transition: all {{SIZE}}ms ease;',
             ],
         ]);
 
@@ -1003,11 +965,11 @@ class Product_Attributes extends Widget_Base {
 
     protected function render(): void {
         $settings = $this->get_settings_for_display();
-        $product  = $this->resolve_product($settings);
+        $product  = $this->resolve_product();
 
         if (!$product) {
             if (\Elementor\Plugin::$instance->editor->is_edit_mode()) {
-                echo '<div class="amw-paw__notice">' . esc_html__('محصولی برای پیش‌نمایش پیدا نشد. این ویجت را در قالب صفحه محصول استفاده کنید یا در بخش «پیش‌نمایش» شناسه یک محصول را وارد کنید.', 'almasara-widgets') . '</div>';
+                echo '<div class="amw-paw__notice">' . esc_html__('محصولی برای پیش‌نمایش پیدا نشد. این ویجت را در قالب صفحه محصول استفاده کنید.', 'almasara-widgets') . '</div>';
             }
             return;
         }
@@ -1020,21 +982,15 @@ class Product_Attributes extends Widget_Base {
         $scope       = $settings['link_scope'];
         $global_link = !empty($settings['link']['url']) ? $settings['link'] : null;
 
-        $wrapper_classes = ['amw-paw', 'amw-svgmode-' . $settings['svg_color_mode']];
-
         $wrapper_tag = 'div';
-        $this->add_render_attribute('wrapper', 'class', $wrapper_classes);
+        $this->add_render_attribute('wrapper', 'class', 'amw-paw');
         if ('widget' === $scope && $global_link) {
             $wrapper_tag = 'a';
             $this->add_link_attributes('wrapper', $global_link);
         }
 
-        // سطر اول
         $header_tag = 'div';
         $this->add_render_attribute('header', 'class', 'amw-paw__header');
-        if ('yes' === $settings['header_reverse']) {
-            $this->add_render_attribute('header', 'class', 'amw-reverse');
-        }
         if ('header' === $scope && $global_link) {
             $header_tag = 'a';
             $this->add_link_attributes('header', $global_link);
@@ -1058,7 +1014,7 @@ class Product_Attributes extends Widget_Base {
                 <?php endif; ?>
 
                 <?php if ('yes' === $settings['show_divider']) : ?>
-                    <span class="amw-paw__divider<?php echo ('yes' !== ($settings['divider_flexible'] ?? 'yes')) ? ' amw-fixed' : ''; ?>" aria-hidden="true"></span>
+                    <span class="amw-paw__divider" aria-hidden="true"></span>
                 <?php endif; ?>
 
                 <?php $this->render_icon($settings); ?>
@@ -1089,32 +1045,26 @@ class Product_Attributes extends Widget_Base {
         <?php
     }
 
-    /** رندر آیکون بر اساس نوع انتخابی */
+    /** رندر آیکون؛ SVG همیشه inline و پاک‌سازی‌شده درج می‌شود */
     private function render_icon(array $settings): void {
-        if ('none' === $settings['icon_type']) {
+        if (empty($settings['icon_image']['url'])) {
             return;
         }
 
+        $url    = $settings['icon_image']['url'];
+        $is_svg = 'svg' === strtolower(pathinfo(wp_parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+
         echo '<span class="amw-paw__icon">';
 
-        if ('icon' === $settings['icon_type']) {
-            if (!empty($settings['icon']['value'])) {
-                Icons_Manager::render_icon($settings['icon'], ['aria-hidden' => 'true']);
-            }
-        } elseif (!empty($settings['icon_image']['url'])) {
-            $url    = $settings['icon_image']['url'];
-            $is_svg = 'svg' === strtolower(pathinfo(wp_parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $svg = '';
+        if ($is_svg && !empty($settings['icon_image']['id'])) {
+            $svg = $this->get_inline_svg((int) $settings['icon_image']['id']);
+        }
 
-            if ($is_svg && 'yes' === $settings['inline_svg'] && !empty($settings['icon_image']['id'])) {
-                $svg = $this->get_inline_svg((int) $settings['icon_image']['id']);
-                if ($svg) {
-                    echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput -- sanitized in get_inline_svg()
-                } else {
-                    printf('<img src="%s" alt="">', esc_url($url));
-                }
-            } else {
-                printf('<img src="%s" alt="">', esc_url($url));
-            }
+        if ($svg) {
+            echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput -- sanitized in get_inline_svg()
+        } else {
+            printf('<img src="%s" alt="">', esc_url($url));
         }
 
         echo '</span>';
@@ -1143,8 +1093,8 @@ class Product_Attributes extends Widget_Base {
         return trim($svg);
     }
 
-    /** پیدا کردن محصول: صفحه محصول جاری، وگرنه پیش‌نمایش ادیتور */
-    private function resolve_product(array $settings) {
+    /** پیدا کردن محصول: صفحه محصول جاری، وگرنه آخرین محصول برای پیش‌نمایش ادیتور */
+    private function resolve_product() {
         if (!function_exists('wc_get_product')) {
             return false;
         }
@@ -1154,33 +1104,37 @@ class Product_Attributes extends Widget_Base {
             return wc_get_product($post_id);
         }
 
-        // خارج از صفحه محصول فقط برای پیش‌نمایش در ادیتور/پیش‌نمایش المنتور
         $is_preview = \Elementor\Plugin::$instance->editor->is_edit_mode() || is_preview()
             || (\Elementor\Plugin::$instance->preview && \Elementor\Plugin::$instance->preview->is_preview_mode());
 
         if (!$is_preview) {
-            // در قالب‌ساز صفحه محصول (theme builder) پست جاری ممکن است محصول باشد؛ بالاتر پوشش داده شد
             return false;
-        }
-
-        if (!empty($settings['preview_product_id'])) {
-            $product = wc_get_product((int) $settings['preview_product_id']);
-            if ($product) {
-                return $product;
-            }
         }
 
         $latest = wc_get_products(['limit' => 1, 'orderby' => 'date', 'order' => 'DESC', 'status' => 'publish']);
         return $latest ? $latest[0] : false;
     }
 
-    /** ساخت آرایه آیتم‌ها از تنظیمات ریپیتر */
+    /**
+     * ساخت آرایه آیتم‌ها:
+     * اول آیتم‌های انتخابی؛ اگر «تعداد» بیشتر بود، به‌طور خودکار از سایر
+     * ویژگی‌های خود محصول تکمیل می‌شود.
+     */
     private function build_items(array $settings, $product): array {
         $items = [];
+        $used_attributes = [];
 
         foreach ((array) $settings['items'] as $row) {
             $value = $this->resolve_value($row, $product, $settings);
             $label = '' !== trim((string) ($row['label'] ?? '')) ? $row['label'] : $this->default_label($row, $product);
+
+            // ثبت ویژگی‌های استفاده‌شده تا در تکمیل خودکار تکرار نشوند
+            if ('attribute' === $row['source']) {
+                $attr = $row['attribute'] ?? '';
+                $used_attributes[] = ('custom' === $attr)
+                    ? sanitize_title((string) ($row['custom_attribute'] ?? ''))
+                    : $attr;
+            }
 
             if ('' === $value && 'yes' === $settings['hide_empty']) {
                 continue;
@@ -1190,6 +1144,54 @@ class Product_Attributes extends Widget_Base {
                 'label' => $label,
                 'value' => $value,
                 'link'  => $row['item_link'] ?? null,
+            ];
+        }
+
+        $count = (int) ($settings['items_count'] ?? 0);
+
+        if ($count > 0) {
+            if (count($items) >= $count) {
+                return array_slice($items, 0, $count);
+            }
+            $items = $this->autofill_from_attributes($items, $used_attributes, $product, $settings, $count);
+        }
+
+        return $items;
+    }
+
+    /** تکمیل خودکار آیتم‌ها از ویژگی‌های خود محصول */
+    private function autofill_from_attributes(array $items, array $used, $product, array $settings, int $count): array {
+        foreach ($product->get_attributes() as $attribute) {
+            if (count($items) >= $count) {
+                break;
+            }
+
+            if (!$attribute instanceof \WC_Product_Attribute || !$attribute->get_visible()) {
+                continue;
+            }
+
+            $name = $attribute->get_name();
+            $key  = $attribute->is_taxonomy() ? $name : sanitize_title($name);
+            if (in_array($key, $used, true)) {
+                continue;
+            }
+
+            if ($attribute->is_taxonomy()) {
+                $values = wc_get_product_terms($product->get_id(), $name, ['fields' => 'names']);
+                $values = is_wp_error($values) ? [] : $values;
+            } else {
+                $values = $attribute->get_options();
+            }
+
+            $value = $this->join_values((array) $values, $settings);
+            if ('' === $value) {
+                continue;
+            }
+
+            $items[] = [
+                'label' => wc_attribute_label($name, $product),
+                'value' => $value,
+                'link'  => null,
             ];
         }
 
@@ -1220,22 +1222,25 @@ class Product_Attributes extends Widget_Base {
         return $labels[$row['source']] ?? '';
     }
 
-    /** مقدار داینامیک هر آیتم از محصول جاری */
-    private function resolve_value(array $row, $product, array $settings): string {
+    /** چسباندن مقادیر چندتایی با جداکننده و سقف تعداد */
+    private function join_values(array $values, array $settings): string {
         $separator = (string) ($settings['value_separator'] ?? '، ');
         $limit     = (int) ($settings['value_limit'] ?? 0);
 
-        $join = static function (array $values) use ($separator, $limit): string {
-            $values = array_filter(array_map('trim', $values), 'strlen');
-            $truncated = false;
-            if ($limit > 0 && count($values) > $limit) {
-                $values    = array_slice($values, 0, $limit);
-                $truncated = true;
-            }
-            $out = implode($separator, $values);
-            return $truncated ? $out . '، ...' : $out;
-        };
+        $values    = array_filter(array_map('trim', array_map('strval', $values)), 'strlen');
+        $truncated = false;
 
+        if ($limit > 0 && count($values) > $limit) {
+            $values    = array_slice($values, 0, $limit);
+            $truncated = true;
+        }
+
+        $out = implode($separator, $values);
+        return $truncated ? $out . '، ...' : $out;
+    }
+
+    /** مقدار داینامیک هر آیتم از محصول جاری */
+    private function resolve_value(array $row, $product, array $settings): string {
         switch ($row['source']) {
             case 'attribute':
                 $attr = $row['attribute'] ?? '';
@@ -1245,18 +1250,18 @@ class Product_Attributes extends Widget_Base {
                         return '';
                     }
                     $value = $product->get_attribute($name);
-                    return $join(explode(',', $value));
+                    return $this->join_values(explode(',', $value), $settings);
                 }
                 $terms = wc_get_product_terms($product->get_id(), $attr, ['fields' => 'names']);
-                return is_wp_error($terms) ? '' : $join($terms);
+                return is_wp_error($terms) ? '' : $this->join_values($terms, $settings);
 
             case 'category':
                 $terms = wc_get_product_terms($product->get_id(), 'product_cat', ['fields' => 'names']);
-                return is_wp_error($terms) ? '' : $join($terms);
+                return is_wp_error($terms) ? '' : $this->join_values($terms, $settings);
 
             case 'tag':
                 $terms = wc_get_product_terms($product->get_id(), 'product_tag', ['fields' => 'names']);
-                return is_wp_error($terms) ? '' : $join($terms);
+                return is_wp_error($terms) ? '' : $this->join_values($terms, $settings);
 
             case 'sku':
                 return (string) $product->get_sku();

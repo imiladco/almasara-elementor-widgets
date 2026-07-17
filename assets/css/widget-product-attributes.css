@@ -10,17 +10,13 @@
 	text-decoration: none;
 }
 
-/* ---------- سطر اول ---------- */
+/* ---------- سطر معرفی ---------- */
 
 .amw-paw__header {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 20px;
-}
-
-.amw-paw__header.amw-reverse {
-	flex-direction: row-reverse;
 }
 
 .amw-paw__title {
@@ -32,11 +28,6 @@
 	flex: 1 1 auto;
 	height: 0;
 	border-top: 1px dashed #d9dbe4;
-}
-
-.amw-paw__divider.amw-fixed {
-	flex: 0 0 auto;
-	width: 120px;
 }
 
 .amw-paw__icon {
@@ -59,39 +50,7 @@
 	display: block;
 }
 
-.amw-paw__icon i {
-	font-size: var(--amw-icon-size);
-}
-
-/* ---------- رنگ‌آمیزی SVG ----------
- * original: بدون قانون؛ رنگ خود فایل حفظ می‌شود
- * auto: فقط صفت‌هایی که در فایل رنگ دارند بازرنگ می‌شوند
- * fill/stroke: اجبار روی همان صفت
- */
-
-.amw-svgmode-auto .amw-paw__icon svg [fill]:not([fill="none"]):not([fill="transparent"]) {
-	fill: var(--amw-icon-color, currentColor);
-}
-
-.amw-svgmode-auto .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
-	stroke: var(--amw-icon-color, currentColor);
-}
-
-/* شکل‌هایی که هیچ رنگی ندارند و به fill پیش‌فرض (مشکی) تکیه کرده‌اند */
-.amw-svgmode-auto .amw-paw__icon svg :is(path, circle, rect, ellipse, polygon, polyline, line):not([fill]):not([stroke]) {
-	fill: var(--amw-icon-color, currentColor);
-}
-
-.amw-svgmode-fill .amw-paw__icon svg,
-.amw-svgmode-fill .amw-paw__icon svg *:not([fill="none"]):not([fill="transparent"]) {
-	fill: var(--amw-icon-color, currentColor) !important;
-}
-
-.amw-svgmode-stroke .amw-paw__icon svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
-	stroke: var(--amw-icon-color, currentColor) !important;
-}
-
-/* ---------- آیتم‌ها ---------- */
+/* ---------- سطر آیتم‌ها ---------- */
 
 .amw-paw__items {
 	display: grid;
