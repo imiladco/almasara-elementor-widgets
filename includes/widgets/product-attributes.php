@@ -244,6 +244,12 @@ class Product_Attributes extends Widget_Base {
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
+        $this->add_control('show_all_attributes', [
+            'label'       => __('نمایش همه ویژگی‌های محصول', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('برای بخش «توضیحات تکمیلی»: اول آیتم‌های انتخابی، بعد تمام ویژگی‌های دیگر محصول بدون محدودیت تعداد.', 'almasara-widgets'),
+        ]);
+
         $this->add_control('items_count', [
             'label'       => __('تعداد آیتم‌های نمایشی', 'almasara-widgets'),
             'type'        => Controls_Manager::NUMBER,
@@ -251,6 +257,7 @@ class Product_Attributes extends Widget_Base {
             'max'         => 30,
             'default'     => 6,
             'description' => __('اول آیتم‌های انتخابی شما نمایش داده می‌شوند؛ اگر محصول آن‌ها را نداشت، به‌طور خودکار از سایر ویژگی‌های خود محصول تا رسیدن به این تعداد پر می‌شود. ۰ یعنی فقط آیتم‌های انتخابی.', 'almasara-widgets'),
+            'condition'   => ['show_all_attributes' => ''],
         ]);
 
         $repeater = new Repeater();
@@ -703,7 +710,9 @@ class Product_Attributes extends Widget_Base {
             ];
         }
 
-        $count = (int) ($settings['items_count'] ?? 0);
+        $count = ('yes' === ($settings['show_all_attributes'] ?? ''))
+            ? PHP_INT_MAX
+            : (int) ($settings['items_count'] ?? 0);
 
         if ($count > 0) {
             if (count($items) >= $count) {

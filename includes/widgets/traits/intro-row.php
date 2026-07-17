@@ -110,7 +110,7 @@ trait Intro_Row {
      * محتوا: بخش معرفی
      * ------------------------------------------------------------------- */
 
-    private function register_intro_content_controls(string $default_title): void {
+    private function register_intro_content_controls(string $default_title, string $default_subtitle = ''): void {
         $this->start_controls_section('section_intro', [
             'label' => __('معرفی', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_CONTENT,
@@ -122,6 +122,15 @@ trait Intro_Row {
             'default'     => $default_title,
             'dynamic'     => ['active' => true],
             'label_block' => true,
+        ]);
+
+        $this->add_control('subtitle', [
+            'label'       => __('زیرعنوان', 'almasara-widgets'),
+            'type'        => Controls_Manager::TEXT,
+            'default'     => $default_subtitle,
+            'dynamic'     => ['active' => true],
+            'label_block' => true,
+            'description' => __('اگر پر شود، عنوان یک خط بالا می‌آید و آیکون + زیرعنوان + خط جداکننده در سطر دوم قرار می‌گیرند (مثل دیزاین بخش‌های محصول).', 'almasara-widgets'),
         ]);
 
         $this->add_control('title_tag', [
@@ -240,6 +249,13 @@ trait Intro_Row {
             'selector' => '{{WRAPPER}} .amw-paw__title',
         ]);
 
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'      => 'subtitle_typography',
+            'label'     => __('تایپوگرافی زیرعنوان', 'almasara-widgets'),
+            'selector'  => '{{WRAPPER}} .amw-paw__subtitle',
+            'condition' => ['subtitle!' => ''],
+        ]);
+
         $this->add_control('divider_style', [
             'label'     => __('نوع خط جداکننده', 'almasara-widgets'),
             'type'      => Controls_Manager::SELECT,
@@ -307,6 +323,15 @@ trait Intro_Row {
             'selectors' => [
                 '{{WRAPPER}} .amw-paw__title' => 'color: {{VALUE}};',
             ],
+        ]);
+
+        $this->add_control('subtitle_color', [
+            'label'     => __('رنگ زیرعنوان', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-paw__subtitle' => 'color: {{VALUE}};',
+            ],
+            'condition' => ['subtitle!' => ''],
         ]);
 
         $this->add_control('divider_color', [
@@ -388,8 +413,13 @@ trait Intro_Row {
      * ------------------------------------------------------------------- */
 
     private function render_intro_row(array $settings, string $scope, ?array $global_link): void {
+        $has_subtitle = '' !== trim((string) ($settings['subtitle'] ?? ''));
+
         $header_tag = 'div';
         $this->add_render_attribute('header', 'class', 'amw-paw__header');
+        if ($has_subtitle) {
+            $this->add_render_attribute('header', 'class', 'amw-paw__header--stacked');
+        }
         if ('header' === $scope && $global_link) {
             $header_tag = 'a';
             $this->add_link_attributes('header', $global_link);
@@ -410,11 +440,20 @@ trait Intro_Row {
                 </<?php echo $title_tag; // phpcs:ignore ?>>
             <?php endif; ?>
 
-            <?php if ('yes' === $settings['show_divider']) : ?>
-                <span class="amw-paw__divider" aria-hidden="true"></span>
+            <?php if ($has_subtitle) : ?>
+                <span class="amw-paw__subrow">
+                    <?php $this->render_icon($settings); ?>
+                    <span class="amw-paw__subtitle"><?php echo esc_html($settings['subtitle']); ?></span>
+                    <?php if ('yes' === $settings['show_divider']) : ?>
+                        <span class="amw-paw__divider" aria-hidden="true"></span>
+                    <?php endif; ?>
+                </span>
+            <?php else : ?>
+                <?php if ('yes' === $settings['show_divider']) : ?>
+                    <span class="amw-paw__divider" aria-hidden="true"></span>
+                <?php endif; ?>
+                <?php $this->render_icon($settings); ?>
             <?php endif; ?>
-
-            <?php $this->render_icon($settings); ?>
         </<?php echo $header_tag; // phpcs:ignore ?>>
         <?php
     }

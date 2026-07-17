@@ -20,6 +20,8 @@ final class Plugin {
     }
 
     private function __construct() {
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-extras.php';
+
         add_action('elementor/elements/categories_registered', [$this, 'register_category']);
         add_action('elementor/widgets/register', [$this, 'register_widgets']);
         add_action('elementor/frontend/after_register_styles', [$this, 'register_styles']);
@@ -46,23 +48,38 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-attributes.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-description.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-gallery.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/anchor-nav.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-faq.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
         $widgets_manager->register(new Widgets\Product_Gallery());
+        $widgets_manager->register(new Widgets\Anchor_Nav());
+        $widgets_manager->register(new Widgets\Product_Faq());
+        $widgets_manager->register(new Widgets\Product_Reviews());
     }
 
     /**
      * اسکریپت مودال گالری؛ فقط وقتی ویجت گالری در صفحه باشد لود می‌شود
      */
     public function register_scripts(): void {
-        wp_register_script(
-            'almasara-gallery',
-            ALMASARA_WIDGETS_URL . 'assets/js/gallery-modal.js',
-            [],
-            ALMASARA_WIDGETS_VERSION,
-            true
-        );
+        $scripts = [
+            'almasara-gallery' => 'gallery-modal.js',
+            'almasara-nav'     => 'anchor-nav.js',
+            'almasara-faq'     => 'faq.js',
+            'almasara-reviews' => 'reviews.js',
+        ];
+
+        foreach ($scripts as $handle => $file) {
+            wp_register_script(
+                $handle,
+                ALMASARA_WIDGETS_URL . 'assets/js/' . $file,
+                [],
+                ALMASARA_WIDGETS_VERSION,
+                true
+            );
+        }
     }
 
     /**
