@@ -122,23 +122,29 @@
 
 /* ---------- ویجت گالری محصول ----------
  *
- * ساختار تختِ CSS Grid: تصویر شاخص (.amw-pg__main) و همه تامبنیل‌ها (.amw-pg__thumb)
- * فرزندان مستقیم .amw-pg هستند. با دو media query دو چیدمان متفاوت می‌گیرند:
+ * ساختار: .amw-pg (position:relative) > .amw-pg__strip > شاخص + همه تامبنیل‌ها (flat)
  *
- * موبایل (پیش‌فرض):
- *   گرید ۲ ستونه، هر آیتم مربع 1:1 و آیتم‌های ۱، ۴، ۷، ... تمام عرض
- *   یعنی «۱ بزرگ + ۲ کوچک» تکرارشونده. تمام تامبنیل‌های گالری نمایش داده می‌شوند.
+ * دسکتاپ (>=768px): گرید N ستونه (--amw-pg-thumbs)؛ تصویر شاخص تمام عرض سطر
+ * اول، فقط N تامبنیل اول نمایش و بقیه (--extra) مخفی.
  *
- * دسکتاپ (>=768px):
- *   گرید N ستونه (--amw-pg-thumbs)، تصویر شاخص تمام عرض سطر اول، بقیه در سطر دوم.
- *   فقط N تای اول قابل نمایش‌اند و بقیه (--extra) مخفی می‌شوند.
+ * موبایل «یکی‌درمیون»: نوار اسکرول افقی. ترفند: flex ستونی + wrap با ارتفاع
+ * ثابت (--amw-pg-mh). آیتم تمام‌ارتفاع یک «ستون» کامل را می‌گیرد و مربع است
+ * (عرض = ارتفاع از aspect-ratio)؛ دو آیتم نصف‌ارتفاع خودکار در یک ستون روی هم
+ * می‌نشینند. الگوی 3n+1 تعیین می‌کند کدام آیتم‌ها بزرگ باشند:
+ * شاخص(۱) بزرگ، ۲تای بعد کوچک، جایگاه ۴ بزرگ، ... یکی‌درمیون مثل دیزاین.
  */
 
 .amw-pg {
+	position: relative;
+	--amw-pg-rgap: 8px;
+	--amw-pg-cgap: 8px;
+}
+
+.amw-pg__strip {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	column-gap: 8px;
-	row-gap: 8px;
+	row-gap: var(--amw-pg-rgap);
+	column-gap: var(--amw-pg-cgap);
 }
 
 .amw-pg__main,
@@ -165,40 +171,117 @@
 	transition: all 0.3s ease;
 }
 
-/*
- * الگوی موبایلِ «یکی‌درمیون»: هر آیتمی که در جایگاه 3n+1 قرار گیرد تمام عرض می‌شود.
- * تصویر شاخص در جایگاه ۱ است پس خودکار تمام عرض می‌شود؛ سپس هر ۳ آیتم یکبار
- * یک آیتم بزرگ ظاهر می‌شود.
- */
-.amw-pg--mobile-alt > .amw-pg__main,
-.amw-pg--mobile-alt > .amw-pg__thumb:nth-child(3n + 1) {
-	grid-column: 1 / -1;
-}
+@media (max-width: 767px) {
 
-/* حالت «همان چیدمان دسکتاپ» در موبایل: مثل دسکتاپ فقط N تای اول */
-.amw-pg--mobile-match > .amw-pg__main {
-	grid-column: 1 / -1;
-}
-.amw-pg--mobile-match > .amw-pg__thumb--extra {
-	display: none;
+	/* ---- نوار اسکرول افقی یکی‌درمیون ---- */
+	.amw-pg--mobile-alt .amw-pg__strip {
+		display: flex;
+		flex-direction: column;
+		flex-wrap: wrap;
+		height: var(--amw-pg-mh, 85vw);
+		overflow-x: auto;
+		overflow-y: hidden;
+		scroll-snap-type: x proximity;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+	}
+
+	.amw-pg--mobile-alt .amw-pg__strip::-webkit-scrollbar {
+		display: none;
+	}
+
+	/* پیش‌فرض: مربع کوچک، دوتا در هر ستون */
+	.amw-pg--mobile-alt .amw-pg__strip > .amw-pg__thumb {
+		flex: 0 0 auto;
+		height: calc((100% - var(--amw-pg-rgap, 8px)) / 2);
+		width: auto;
+		scroll-snap-align: center;
+	}
+
+	/* آیتم‌های جایگاه 3n+1 (شاخص، تامبنیل ۳، ۶، ...) تمام‌ارتفاع و مربع بزرگ */
+	.amw-pg--mobile-alt .amw-pg__strip > .amw-pg__main,
+	.amw-pg--mobile-alt .amw-pg__strip > .amw-pg__thumb:nth-child(3n + 1) {
+		flex: 0 0 auto;
+		height: 100%;
+		width: auto;
+		scroll-snap-align: center;
+	}
+
+	/* در موبایل همه تصاویر دیده می‌شوند؛ اورلی و بلور «بیشتر» بی‌معنی است */
+	.amw-pg--mobile-alt .amw-pg__strip > .amw-pg__thumb--more .amw-pg__more-overlay {
+		display: none;
+	}
+
+	.amw-pg--mobile-alt .amw-pg__strip > .amw-pg__thumb--more img {
+		filter: none !important;
+	}
+
+	/* ---- حالت «همان چیدمان دسکتاپ» در موبایل: گرید ۲ ستونه ---- */
+	.amw-pg--mobile-match .amw-pg__strip > .amw-pg__main {
+		grid-column: 1 / -1;
+	}
+
+	.amw-pg--mobile-match .amw-pg__strip > .amw-pg__thumb--extra {
+		display: none;
+	}
 }
 
 /* دسکتاپ */
 @media (min-width: 768px) {
-	.amw-pg {
+	.amw-pg__strip {
 		grid-template-columns: repeat(var(--amw-pg-thumbs, 4), minmax(0, 1fr));
 	}
-	.amw-pg > .amw-pg__main {
+
+	.amw-pg__strip > .amw-pg__main {
 		grid-column: 1 / -1;
 	}
-	/*
-	 * ریست الگوی موبایل روی دسکتاپ — تامبنیل‌های تک‌جایگاه دوباره تک‌ستون می‌شوند
-	 */
-	.amw-pg > .amw-pg__thumb {
-		grid-column: auto;
-	}
-	.amw-pg > .amw-pg__thumb--extra {
+
+	.amw-pg__strip > .amw-pg__thumb--extra {
 		display: none;
+	}
+}
+
+/* ---- نشانگر پیشرفت + تعداد (فقط موبایل یکی‌درمیون) ---- */
+
+.amw-pg__counter {
+	display: none;
+}
+
+@media (max-width: 767px) {
+	.amw-pg--mobile-alt > .amw-pg__counter {
+		position: absolute;
+		bottom: 12px;
+		inset-inline-start: 12px;
+		z-index: 2;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 12px;
+		border-radius: 999px;
+		background-color: rgba(255, 255, 255, 0.92);
+		box-shadow: 0 2px 10px rgba(16, 24, 40, 0.15);
+		color: #1a2b4a;
+		font-size: 13px;
+		font-weight: 700;
+		line-height: 1;
+		pointer-events: none;
+	}
+
+	.amw-pg__counter-bar {
+		width: 44px;
+		height: 5px;
+		border-radius: 999px;
+		background-color: #e4e7ee;
+		overflow: hidden;
+	}
+
+	.amw-pg__counter-fill {
+		display: block;
+		height: 100%;
+		width: 0;
+		border-radius: inherit;
+		background-color: #8a94a6;
+		transition: width 0.15s ease;
 	}
 }
 
@@ -212,18 +295,6 @@
 	background-color: rgba(16, 24, 40, 0.6);
 }
 
-/*
- * در موبایلِ «یکی‌درمیون» تمام تامبنیل‌ها نمایش داده می‌شوند، پس تامبنیل آخر
- * روی دسکتاپ که --more شده در موبایل نباید اورلی داشته باشد.
- */
-@media (max-width: 767px) {
-	.amw-pg--mobile-alt > .amw-pg__thumb--more .amw-pg__more-overlay {
-		display: none;
-	}
-	.amw-pg--mobile-alt > .amw-pg__thumb--more img {
-		filter: none !important;
-	}
-}
 
 .amw-pg__dots {
 	display: flex;

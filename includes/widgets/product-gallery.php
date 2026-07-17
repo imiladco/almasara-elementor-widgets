@@ -89,10 +89,34 @@ class Product_Gallery extends Widget_Base {
             'type'         => Controls_Manager::SELECT,
             'default'      => 'alternating',
             'options'      => [
-                'alternating' => __('یکی‌درمیون (۱ بزرگ، ۲ کوچک)', 'almasara-widgets'),
+                'alternating' => __('نوار اسکرولی یکی‌درمیون (۱ بزرگ، ۲ کوچک)', 'almasara-widgets'),
                 'match'       => __('همان چیدمان دسکتاپ', 'almasara-widgets'),
             ],
-            'description'  => __('در حالت یکی‌درمیون، تمام تصاویر گالری در موبایل نشان داده می‌شوند: تصویر شاخص و هر آیتم بعدی که در جایگاه ۱ در الگو قرار بگیرد بزرگ و بقیه ۲تا۲تا مربعی می‌شوند.', 'almasara-widgets'),
+            'description'  => __('نوار افقی قابل سوایپ: تصویر شاخص تمام‌ارتفاع و مربع، بعد ستونی از ۲ مربع کوچک، بعد تصویر بزرگ بعدی و همین‌طور یکی‌درمیون. تمام تصاویر گالری نمایش داده می‌شوند.', 'almasara-widgets'),
+        ]);
+
+        $this->add_responsive_control('mobile_height', [
+            'label'       => __('ارتفاع نوار گالری موبایل', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px', 'vw'],
+            'range'       => [
+                'px' => ['min' => 150, 'max' => 600],
+                'vw' => ['min' => 30, 'max' => 100],
+            ],
+            'default'     => ['size' => 85, 'unit' => 'vw'],
+            'description' => __('عرض تصویر بزرگ = همین ارتفاع (مربع ۱:۱)؛ ارتفاع و عرض دو مربع کوچک هم از همین مقدار منهای گپ محاسبه می‌شود.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-pg' => '--amw-pg-mh: {{SIZE}}{{UNIT}};',
+            ],
+            'condition'   => ['mobile_layout' => 'alternating'],
+        ]);
+
+        $this->add_control('show_mobile_counter', [
+            'label'       => __('نشانگر پایین گالری موبایل', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'default'     => 'yes',
+            'description' => __('پیل شامل نوار پیشرفت اسکرول + تعداد تصاویر، پایین نوار گالری — مثل دیزاین.', 'almasara-widgets'),
+            'condition'   => ['mobile_layout' => 'alternating'],
         ]);
 
         $this->add_control('show_dots', [
@@ -233,7 +257,7 @@ class Product_Gallery extends Widget_Base {
             'size_units' => ['px', 'em'],
             'range'      => ['px' => ['min' => 0, 'max' => 100]],
             'selectors'  => [
-                '{{WRAPPER}} .amw-pg' => 'row-gap: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .amw-pg' => '--amw-pg-rgap: {{SIZE}}{{UNIT}};',
             ],
         ]);
 
@@ -293,7 +317,7 @@ class Product_Gallery extends Widget_Base {
             'range'      => ['px' => ['min' => 0, 'max' => 60]],
             'default'    => ['size' => 12, 'unit' => 'px'],
             'selectors'  => [
-                '{{WRAPPER}} .amw-pg' => 'column-gap: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .amw-pg' => '--amw-pg-cgap: {{SIZE}}{{UNIT}};',
             ],
         ]);
 
@@ -520,6 +544,50 @@ class Product_Gallery extends Widget_Base {
                 '{{WRAPPER}} .amw-pg__more-count' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
             'condition'  => ['show_more_count' => 'yes'],
+        ]);
+
+        // ---------------- نشانگر موبایل ----------------
+        $this->add_control('heading_counter', [
+            'label'     => __('نشانگر گالری موبایل', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+            'condition' => ['show_mobile_counter' => 'yes', 'mobile_layout' => 'alternating'],
+        ]);
+
+        $this->add_control('counter_bg', [
+            'label'     => __('رنگ پس‌زمینه پیل', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__counter' => 'background-color: {{VALUE}};',
+            ],
+            'condition' => ['show_mobile_counter' => 'yes', 'mobile_layout' => 'alternating'],
+        ]);
+
+        $this->add_control('counter_color', [
+            'label'     => __('رنگ متن و آیکون', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__counter' => 'color: {{VALUE}};',
+            ],
+            'condition' => ['show_mobile_counter' => 'yes', 'mobile_layout' => 'alternating'],
+        ]);
+
+        $this->add_control('counter_track_color', [
+            'label'     => __('رنگ زمینه نوار پیشرفت', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__counter-bar' => 'background-color: {{VALUE}};',
+            ],
+            'condition' => ['show_mobile_counter' => 'yes', 'mobile_layout' => 'alternating'],
+        ]);
+
+        $this->add_control('counter_fill_color', [
+            'label'     => __('رنگ نوار پیشرفت', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__counter-fill' => 'background-color: {{VALUE}};',
+            ],
+            'condition' => ['show_mobile_counter' => 'yes', 'mobile_layout' => 'alternating'],
         ]);
 
         $this->end_controls_section();
@@ -819,15 +887,18 @@ class Product_Gallery extends Widget_Base {
         ?>
         <div <?php $this->print_render_attribute_string('wrapper'); ?>>
 
+            <div class="amw-pg__strip">
+
             <<?php echo $trigger_tag; // phpcs:ignore ?> class="amw-pg__main" <?php echo $modal_enabled ? 'type="button" data-index="0" aria-label="' . esc_attr__('بزرگ‌نمایی تصویر', 'almasara-widgets') . '"' : ''; ?>>
                 <?php echo wp_get_attachment_image($main_id, 'large', false, ['loading' => 'eager']); ?>
             </<?php echo $trigger_tag; // phpcs:ignore ?>>
 
             <?php
             /*
-             * تمام تصاویر گالری به صورت flat به عنوان فرزند مستقیم .amw-pg رندر می‌شوند
-             * تا در موبایل الگوی «۱ بزرگ + ۲ کوچک» با CSS Grid + nth-child کار کند.
-             * روی دسکتاپ فقط $count تای اول نشان داده و بقیه با --extra مخفی می‌شوند.
+             * تمام تصاویر گالری به صورت flat فرزند مستقیم .amw-pg__strip رندر می‌شوند:
+             * - دسکتاپ: گرید N ستونه؛ فقط N تای اول نمایش، بقیه با --extra مخفی
+             * - موبایل (یکی‌درمیون): نوار اسکرول افقی با flex ستونی wrap شده؛
+             *   آیتم‌های جایگاه 3n+1 تمام‌ارتفاع (مربع بزرگ) و بقیه ۲تایی مربع کوچک
              */
             foreach ($gallery_ids as $i => $attachment_id) :
                 $data_index   = $i + 1;
@@ -859,6 +930,16 @@ class Product_Gallery extends Widget_Base {
                     <?php endif; ?>
                 </<?php echo $trigger_tag; // phpcs:ignore ?>>
             <?php endforeach; ?>
+
+            </div><!-- /.amw-pg__strip -->
+
+            <?php if ('alternating' === $mobile_layout && 'yes' === ($settings['show_mobile_counter'] ?? 'yes')) : ?>
+                <div class="amw-pg__counter" aria-hidden="true">
+                    <span class="amw-pg__counter-bar"><span class="amw-pg__counter-fill"></span></span>
+                    <span class="amw-pg__counter-num"><?php echo esc_html(number_format_i18n($total)); ?></span>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5a2 2 0 0 0-2.8 0L7 19"/></svg>
+                </div>
+            <?php endif; ?>
 
             <?php if ($modal_enabled) : ?>
                 <div class="amw-pg-modal amw-pg-modal--anim-<?php echo esc_attr($anim); ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-label="<?php echo esc_attr__('گالری تصاویر محصول', 'almasara-widgets'); ?>">

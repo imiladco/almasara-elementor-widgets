@@ -14,6 +14,21 @@
 		}
 		root.__amwPg = true;
 
+		// نشانگر پیشرفت اسکرول نوار گالری موبایل
+		var scroller = root.querySelector('.amw-pg__strip');
+		var fill = root.querySelector('.amw-pg__counter-fill');
+		if (scroller && fill) {
+			var updateProgress = function () {
+				var max = scroller.scrollWidth - scroller.clientWidth;
+				// در RTL مقدار scrollLeft منفی است؛ قدر مطلق نسبت را درست می‌کند
+				var ratio = max > 0 ? Math.min(1, Math.abs(scroller.scrollLeft) / max) : 0;
+				fill.style.width = (ratio * 100).toFixed(1) + '%';
+			};
+			scroller.addEventListener('scroll', updateProgress, { passive: true });
+			window.addEventListener('resize', updateProgress, { passive: true });
+			updateProgress();
+		}
+
 		var modal = root.querySelector('.amw-pg-modal');
 		var endpoint = root.dataset.endpoint;
 		if (!modal || !endpoint) {
