@@ -756,8 +756,19 @@ class Product_Gallery extends Widget_Base {
 
         $this->add_render_attribute('wrapper', 'class', 'amw-pg');
         if ($modal_enabled) {
+            /*
+             * پارامتر v از زمان آخرین ویرایش محصول ساخته می‌شود؛ با هر آپدیت
+             * محصول URL عوض و کش مرورگر/CDN خودکار باطل می‌شود (cache-busting).
+             */
+            $modified = $product->get_date_modified();
+            $endpoint = add_query_arg(
+                'v',
+                $modified ? $modified->getTimestamp() : 0,
+                rest_url('almasara/v1/product-gallery/' . $product->get_id())
+            );
+
             $this->add_render_attribute('wrapper', [
-                'data-endpoint' => esc_url_raw(rest_url('almasara/v1/product-gallery/' . $product->get_id())),
+                'data-endpoint' => esc_url_raw($endpoint),
                 'data-total'    => (string) $total,
             ]);
         }
