@@ -337,3 +337,54 @@ body.amw-pg-noscroll {
 	opacity: 1;
 	border-color: #1a2b4a;
 }
+
+/* ---------- استایل کارتی تامبنیل + بج تعداد ---------- */
+
+.amw-pg__thumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+.amw-pg__more-count {
+	position: absolute;
+	top: 10px;
+	inset-inline-start: 10px;
+	z-index: 1;
+	padding: 4px 10px;
+	border-radius: 8px;
+	background-color: #1a2b40;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.4;
+	direction: ltr;
+}
+
+.amw-pg__more-count--top-end {
+	inset-inline-start: auto;
+	inset-inline-end: 10px;
+}
+
+.amw-pg__more-count--bottom-start {
+	top: auto;
+	bottom: 10px;
+}
+
+.amw-pg__more-count--bottom-end {
+	top: auto;
+	bottom: 10px;
+	inset-inline-start: auto;
+	inset-inline-end: 10px;
+}
+
+.amw-pg__more-count--center {
+	top: 50%;
+	inset-inline-start: 50%;
+	transform: translate(-50%, -50%);
+}
+
+[dir="rtl"] .amw-pg__more-count--center {
+	transform: translate(50%, -50%);
+}

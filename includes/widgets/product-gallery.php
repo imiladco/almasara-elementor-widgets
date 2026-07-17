@@ -84,6 +84,19 @@ class Product_Gallery extends Widget_Base {
             ],
         ]);
 
+        $this->add_control('show_dots', [
+            'label'   => __('نمایش سه‌نقطه روی تامبنیل آخر', 'almasara-widgets'),
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+        ]);
+
+        $this->add_control('show_more_count', [
+            'label'       => __('نمایش تعداد تصاویر باقی‌مانده (+N)', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'default'     => '',
+            'description' => __('بجی مثل «+18» روی تامبنیل آخر.', 'almasara-widgets'),
+        ]);
+
         $this->end_controls_section();
     }
 
@@ -249,6 +262,39 @@ class Product_Gallery extends Widget_Base {
             ],
         ]);
 
+        $this->add_control('thumb_fit', [
+            'label'     => __('نحوه جای‌گیری تصویر', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'cover',
+            'options'   => [
+                'cover'   => __('کاور (کات از وسط)', 'almasara-widgets'),
+                'contain' => __('کامل داخل کارت', 'almasara-widgets'),
+                'fill'    => __('کشیده', 'almasara-widgets'),
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__thumb img' => 'object-fit: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('thumb_bg', [
+            'label'       => __('رنگ پس‌زمینه کارت', 'almasara-widgets'),
+            'type'        => Controls_Manager::COLOR,
+            'description' => __('برای حالت «کامل داخل کارت» یا وقتی پدینگ می‌دهید دیده می‌شود.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-pg__thumb' => 'background-color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('thumb_padding', [
+            'label'       => __('پدینگ داخلی کارت', 'almasara-widgets'),
+            'type'        => Controls_Manager::DIMENSIONS,
+            'size_units'  => ['px', 'em', '%'],
+            'description' => __('فاصله تصویر از لبه‌های کارت — برای ظاهر کارتی مثل دیزین.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-pg__thumb' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ]);
+
         $this->add_control('thumb_position', [
             'label'     => __('نقطه برش کاور', 'almasara-widgets'),
             'type'      => Controls_Manager::SELECT,
@@ -297,6 +343,12 @@ class Product_Gallery extends Widget_Base {
             ],
         ]);
 
+        $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
+            'name'     => 'thumb_shadow',
+            'label'    => __('سایه کارت', 'almasara-widgets'),
+            'selector' => '{{WRAPPER}} .amw-pg__thumb',
+        ]);
+
         $this->add_control('heading_overlay', [
             'label'     => __('اورلی تصاویر بیشتر', 'almasara-widgets'),
             'type'      => Controls_Manager::HEADING,
@@ -330,6 +382,109 @@ class Product_Gallery extends Widget_Base {
             'selectors'  => [
                 '{{WRAPPER}} .amw-pg__dots span' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
             ],
+            'condition'  => ['show_dots' => 'yes'],
+        ]);
+
+        $this->add_control('dots_direction', [
+            'label'     => __('جهت سه‌نقطه', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'row',
+            'options'   => [
+                'row'    => __('افقی', 'almasara-widgets'),
+                'column' => __('عمودی', 'almasara-widgets'),
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__dots' => 'flex-direction: {{VALUE}};',
+            ],
+            'condition' => ['show_dots' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('dots_gap', [
+            'label'      => __('فاصله نقطه‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 1, 'max' => 24]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pg__dots' => 'gap: {{SIZE}}{{UNIT}};',
+            ],
+            'condition'  => ['show_dots' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('more_blur', [
+            'label'       => __('بلور تصویر آخر', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px'],
+            'range'       => ['px' => ['min' => 0, 'max' => 20]],
+            'description' => __('محو کردن تصویر تامبنیل «تصاویر بیشتر» — مثل دیزاین دوم.', 'almasara-widgets'),
+            'selectors'   => [
+                '{{WRAPPER}} .amw-pg__thumb--more img' => 'filter: blur({{SIZE}}{{UNIT}});',
+            ],
+        ]);
+
+        // ---------------- بج +N ----------------
+        $this->add_control('heading_more_count', [
+            'label'     => __('بج تعداد (+N)', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+            'condition' => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_control('more_count_position', [
+            'label'     => __('موقعیت', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'top-start',
+            'options'   => [
+                'top-start'    => __('بالا - ابتدا', 'almasara-widgets'),
+                'top-end'      => __('بالا - انتها', 'almasara-widgets'),
+                'bottom-start' => __('پایین - ابتدا', 'almasara-widgets'),
+                'bottom-end'   => __('پایین - انتها', 'almasara-widgets'),
+                'center'       => __('وسط', 'almasara-widgets'),
+            ],
+            'condition' => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'      => 'more_count_typography',
+            'selector'  => '{{WRAPPER}} .amw-pg__more-count',
+            'condition' => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_control('more_count_color', [
+            'label'     => __('رنگ متن', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__more-count' => 'color: {{VALUE}};',
+            ],
+            'condition' => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_control('more_count_bg', [
+            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pg__more-count' => 'background-color: {{VALUE}};',
+            ],
+            'condition' => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('more_count_padding', [
+            'label'      => __('پدینگ', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pg__more-count' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+            'condition'  => ['show_more_count' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('more_count_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pg__more-count' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+            'condition'  => ['show_more_count' => 'yes'],
         ]);
 
         $this->end_controls_section();
@@ -623,7 +778,15 @@ class Product_Gallery extends Widget_Base {
                             <?php echo wp_get_attachment_image($attachment_id, 'medium', false, ['loading' => 'lazy']); ?>
                             <?php if ($is_last_more) : ?>
                                 <span class="amw-pg__more-overlay" aria-hidden="true">
-                                    <span class="amw-pg__dots"><span></span><span></span><span></span></span>
+                                    <?php if ('yes' === $settings['show_more_count']) :
+                                        $position_whitelist = ['top-start', 'top-end', 'bottom-start', 'bottom-end', 'center'];
+                                        $badge_position = in_array($settings['more_count_position'], $position_whitelist, true) ? $settings['more_count_position'] : 'top-start';
+                                        ?>
+                                        <span class="amw-pg__more-count amw-pg__more-count--<?php echo esc_attr($badge_position); ?>">+<?php echo esc_html($remaining); ?></span>
+                                    <?php endif; ?>
+                                    <?php if ('yes' === $settings['show_dots']) : ?>
+                                        <span class="amw-pg__dots"><span></span><span></span><span></span></span>
+                                    <?php endif; ?>
                                 </span>
                             <?php endif; ?>
                         </<?php echo $trigger_tag; // phpcs:ignore ?>>
