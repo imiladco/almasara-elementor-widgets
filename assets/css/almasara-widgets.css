@@ -108,3 +108,14 @@
 	font-size: 13px;
 	text-align: center;
 }
+
+/* ---------- ویجت توضیحات محصول ---------- */
+
+.amw-pd__content {
+	color: #1a2b4a;
+	line-height: 2;
+}
+
+.amw-pd__content p:last-child {
+	margin-bottom: 0;
+}

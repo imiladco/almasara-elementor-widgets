@@ -40,8 +40,12 @@ final class Plugin {
      * ثبت ویجت‌ها با API جدید المنتور (3.5+)
      */
     public function register_widgets($widgets_manager): void {
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/traits/intro-row.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-attributes.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-description.php';
+
         $widgets_manager->register(new Widgets\Product_Attributes());
+        $widgets_manager->register(new Widgets\Product_Description());
     }
 
     /**
@@ -49,8 +53,8 @@ final class Plugin {
      */
     public function register_styles(): void {
         wp_register_style(
-            'almasara-product-attributes',
-            ALMASARA_WIDGETS_URL . 'assets/css/widget-product-attributes.css',
+            'almasara-widgets',
+            ALMASARA_WIDGETS_URL . 'assets/css/almasara-widgets.css',
             [],
             ALMASARA_WIDGETS_VERSION
         );
@@ -61,6 +65,6 @@ final class Plugin {
      */
     public function enqueue_editor_styles(): void {
         $this->register_styles();
-        wp_enqueue_style('almasara-product-attributes');
+        wp_enqueue_style('almasara-widgets');
     }
 }
