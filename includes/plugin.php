@@ -23,7 +23,9 @@ final class Plugin {
         add_action('elementor/elements/categories_registered', [$this, 'register_category']);
         add_action('elementor/widgets/register', [$this, 'register_widgets']);
         add_action('elementor/frontend/after_register_styles', [$this, 'register_styles']);
+        add_action('elementor/frontend/after_register_scripts', [$this, 'register_scripts']);
         add_action('elementor/editor/after_enqueue_styles', [$this, 'enqueue_editor_styles']);
+        add_action('rest_api_init', [$this, 'register_rest_routes']);
     }
 
     /**
@@ -43,9 +45,82 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/traits/intro-row.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-attributes.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-description.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-gallery.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
+        $widgets_manager->register(new Widgets\Product_Gallery());
+    }
+
+    /**
+     * اسکریپت مودال گالری؛ فقط وقتی ویجت گالری در صفحه باشد لود می‌شود
+     */
+    public function register_scripts(): void {
+        wp_register_script(
+            'almasara-gallery',
+            ALMASARA_WIDGETS_URL . 'assets/js/gallery-modal.js',
+            [],
+            ALMASARA_WIDGETS_VERSION,
+            true
+        );
+    }
+
+    /**
+     * REST endpoint عمومی برای لود ایجکسی تصاویر گالری محصول.
+     * خروجی فقط URL تصاویر است (داده عمومی)، پس کش صفحه/CDN هم می‌تواند کشش کند.
+     */
+    public function register_rest_routes(): void {
+        register_rest_route('almasara/v1', '/product-gallery/(?P<id>\d+)', [
+            'methods'             => 'GET',
+            'permission_callback' => '__return_true',
+            'args'                => [
+                'id' => ['sanitize_callback' => 'absint'],
+            ],
+            'callback'            => [$this, 'rest_product_gallery'],
+        ]);
+    }
+
+    public function rest_product_gallery($request) {
+        if (!function_exists('wc_get_product')) {
+            return new \WP_Error('woocommerce_missing', 'WooCommerce is not active.', ['status' => 500]);
+        }
+
+        $product = wc_get_product((int) $request['id']);
+        if (!$product || 'publish' !== $product->get_status()) {
+            return new \WP_Error('not_found', 'Product not found.', ['status' => 404]);
+        }
+
+        $ids = [];
+        if ($product->get_image_id()) {
+            $ids[] = (int) $product->get_image_id();
+        }
+        foreach ($product->get_gallery_image_ids() as $gallery_id) {
+            $ids[] = (int) $gallery_id;
+        }
+
+        $images = [];
+        foreach ($ids as $attachment_id) {
+            $full = wp_get_attachment_image_src($attachment_id, 'large');
+            if (!$full) {
+                $full = wp_get_attachment_image_src($attachment_id, 'full');
+            }
+            if (!$full) {
+                continue;
+            }
+
+            $thumb = wp_get_attachment_image_src($attachment_id, 'medium');
+
+            $images[] = [
+                'full'  => $full[0],
+                'thumb' => $thumb ? $thumb[0] : $full[0],
+                'alt'   => (string) get_post_meta($attachment_id, '_wp_attachment_image_alt', true),
+            ];
+        }
+
+        $response = rest_ensure_response($images);
+        $response->header('Cache-Control', 'public, max-age=3600');
+
+        return $response;
     }
 
     /**
