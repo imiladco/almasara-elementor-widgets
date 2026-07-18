@@ -62,6 +62,13 @@ class Anchor_Nav extends Widget_Base {
             'dynamic' => ['active' => true],
         ]);
 
+        $this->add_control('show_steps', [
+            'label'       => __('فلش‌های پیمایش بخش قبلی/بعدی', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'default'     => 'yes',
+            'description' => __('شورون بالا/پایین کنار عنوان — مثل دیزاین — برای پرش به بخش قبلی یا بعدی.', 'almasara-widgets'),
+        ]);
+
         $repeater = new Repeater();
 
         $repeater->add_control('label', [
@@ -238,19 +245,31 @@ class Anchor_Nav extends Widget_Base {
         $this->add_control('indicator_color', [
             'label'     => __('رنگ خط زیر تب فعال', 'almasara-widgets'),
             'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-nav__item::after' => 'background-color: {{VALUE}};'],
+            'selectors' => ['{{WRAPPER}} .amw-nav__item::after' => 'border-top-color: {{VALUE}};'],
         ]);
         $this->end_controls_tab();
 
         $this->end_controls_tabs();
+
+        $this->add_control('indicator_style', [
+            'label'     => __('نوع خط تب فعال', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'dotted',
+            'options'   => [
+                'dotted' => __('نقطه‌چین (مثل دیزاین)', 'almasara-widgets'),
+                'dashed' => __('خط‌چین', 'almasara-widgets'),
+                'solid'  => __('توپر', 'almasara-widgets'),
+            ],
+            'separator' => 'before',
+            'selectors' => ['{{WRAPPER}} .amw-nav__item::after' => 'border-top-style: {{VALUE}};'],
+        ]);
 
         $this->add_responsive_control('indicator_height', [
             'label'      => __('ضخامت خط تب فعال', 'almasara-widgets'),
             'type'       => Controls_Manager::SLIDER,
             'size_units' => ['px'],
             'range'      => ['px' => ['min' => 1, 'max' => 8]],
-            'separator'  => 'before',
-            'selectors'  => ['{{WRAPPER}} .amw-nav__item::after' => 'height: {{SIZE}}{{UNIT}};'],
+            'selectors'  => ['{{WRAPPER}} .amw-nav__item::after' => 'border-top-width: {{SIZE}}{{UNIT}};'],
         ]);
 
         $this->add_responsive_control('indicator_gap', [
@@ -259,6 +278,40 @@ class Anchor_Nav extends Widget_Base {
             'size_units' => ['px'],
             'range'      => ['px' => ['min' => 0, 'max' => 20]],
             'selectors'  => ['{{WRAPPER}} .amw-nav__item::after' => 'bottom: -{{SIZE}}{{UNIT}};'],
+        ]);
+
+        /* فلش‌های پیمایش */
+        $this->add_control('heading_steps', [
+            'label'     => __('فلش‌های پیمایش', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+            'condition' => ['show_steps' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('step_size', [
+            'label'      => __('اندازه فلش', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 10, 'max' => 32]],
+            'selectors'  => ['{{WRAPPER}} .amw-nav__step svg' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};'],
+            'condition'  => ['show_steps' => 'yes'],
+        ]);
+
+        $this->add_control('step_color', [
+            'label'     => __('رنگ فلش‌ها', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-nav__step' => 'color: {{VALUE}};',
+                '{{WRAPPER}} .amw-nav__step-dash' => 'background-color: {{VALUE}};',
+            ],
+            'condition' => ['show_steps' => 'yes'],
+        ]);
+
+        $this->add_control('step_color_hover', [
+            'label'     => __('رنگ فلش در هاور', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-nav__step:hover' => 'color: {{VALUE}};'],
+            'condition' => ['show_steps' => 'yes'],
         ]);
 
         $this->end_controls_section();
@@ -280,6 +333,18 @@ class Anchor_Nav extends Widget_Base {
 
         ?>
         <div <?php $this->print_render_attribute_string('nav'); ?>>
+            <?php if ('yes' === $settings['show_steps']) : ?>
+                <span class="amw-nav__steps">
+                    <button type="button" class="amw-nav__step amw-nav__step--up" aria-label="<?php echo esc_attr__('بخش قبلی', 'almasara-widgets'); ?>">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                    </button>
+                    <span class="amw-nav__step-dash" aria-hidden="true"></span>
+                    <button type="button" class="amw-nav__step amw-nav__step--down" aria-label="<?php echo esc_attr__('بخش بعدی', 'almasara-widgets'); ?>">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                </span>
+            <?php endif; ?>
+
             <?php if ('' !== $settings['side_title']) : ?>
                 <span class="amw-nav__title"><?php echo esc_html($settings['side_title']); ?></span>
             <?php endif; ?>

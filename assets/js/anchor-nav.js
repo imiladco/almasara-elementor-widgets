@@ -44,17 +44,41 @@
 		}
 
 		var ticking = false;
+		var activeIndex = -1;
 
 		function spy() {
 			ticking = false;
 			var active = null;
-			pairs.forEach(function (pair) {
+			activeIndex = -1;
+			pairs.forEach(function (pair, i) {
 				if (pair.target.getBoundingClientRect().top - offset - 10 <= 0) {
 					active = pair;
+					activeIndex = i;
 				}
 			});
 			pairs.forEach(function (pair) {
 				pair.link.classList.toggle('is-active', pair === active);
+			});
+		}
+
+		// فلش‌های پیمایش: پرش به بخش قبلی/بعدی
+		function goTo(index) {
+			if (index < 0 || index >= pairs.length) {
+				return;
+			}
+			pairs[index].target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+
+		var stepUp = nav.querySelector('.amw-nav__step--up');
+		var stepDown = nav.querySelector('.amw-nav__step--down');
+		if (stepUp) {
+			stepUp.addEventListener('click', function () {
+				goTo(activeIndex <= 0 ? 0 : activeIndex - 1);
+			});
+		}
+		if (stepDown) {
+			stepDown.addEventListener('click', function () {
+				goTo(activeIndex >= pairs.length - 1 ? pairs.length - 1 : activeIndex + 1);
 			});
 		}
 

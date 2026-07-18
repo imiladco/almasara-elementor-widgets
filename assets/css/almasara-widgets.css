@@ -634,12 +634,42 @@ body.amw-pg-noscroll {
 	content: '';
 	position: absolute;
 	inset-inline: 0;
-	bottom: -6px;
-	height: 2px;
-	border-radius: 2px;
-	background-color: #1a2b4a;
+	bottom: -7px;
+	height: 0;
+	border-top: 2px dotted #16265c;
 	opacity: 0;
 	transition: opacity 0.2s ease;
+}
+
+/* فلش‌های پیمایش بخش قبلی/بعدی (مثل دیزاین: شورون بالا + خط تیره + شورون پایین) */
+.amw-nav__steps {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	flex-shrink: 0;
+}
+
+.amw-nav__step {
+	display: inline-flex;
+	padding: 1px;
+	border: 0;
+	background: none;
+	color: #16265c;
+	cursor: pointer;
+	line-height: 0;
+	transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.amw-nav__step:hover {
+	transform: scale(1.15);
+}
+
+.amw-nav__step-dash {
+	width: 10px;
+	height: 2px;
+	border-radius: 2px;
+	background-color: #c9cfdd;
 }
 
 .amw-nav__item.is-active {
