@@ -61,6 +61,8 @@ class Product_Description extends Widget_Base {
         $this->register_headings_style_controls();
         $this->register_inline_style_controls();
         $this->register_lists_style_controls();
+        $this->register_table_style_controls();
+        $this->register_blockquote_style_controls();
     }
 
     /** محتوا — چیدمان: فقط سطر معرفی (از Trait) */
@@ -435,6 +437,203 @@ class Product_Description extends Widget_Base {
             'name'     => 'list_typography',
             'label'    => __('تایپوگرافی آیتم‌ها', 'almasara-widgets'),
             'selector' => '{{WRAPPER}} .amw-pd__content li',
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    /** استایل — جدول‌ها */
+    private function register_table_style_controls(): void {
+        $this->start_controls_section('section_style_table', [
+            'label' => __('جدول‌ها', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
+        ]);
+
+        $this->add_control('table_border_color', [
+            'label'     => __('رنگ خطوط جدول', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content table, {{WRAPPER}} .amw-pd__content th, {{WRAPPER}} .amw-pd__content td' => 'border-color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('table_border_width', [
+            'label'      => __('ضخامت خطوط', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0, 'max' => 6]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content th, {{WRAPPER}} .amw-pd__content td' => 'border-width: {{SIZE}}{{UNIT}}; border-style: solid;',
+            ],
+        ]);
+
+        $this->add_responsive_control('table_radius', [
+            'label'      => __('رادیوس جدول', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0, 'max' => 30]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content table' => 'border-radius: {{SIZE}}{{UNIT}}; overflow: hidden; border-collapse: separate; border-spacing: 0;',
+            ],
+        ]);
+
+        $this->add_responsive_control('table_cell_padding', [
+            'label'      => __('پدینگ سلول‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content th, {{WRAPPER}} .amw-pd__content td' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('table_align', [
+            'label'     => __('چینش متن سلول‌ها', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => [
+                'right'  => ['title' => __('راست', 'almasara-widgets'), 'icon' => 'eicon-text-align-right'],
+                'center' => ['title' => __('وسط', 'almasara-widgets'), 'icon' => 'eicon-text-align-center'],
+                'left'   => ['title' => __('چپ', 'almasara-widgets'), 'icon' => 'eicon-text-align-left'],
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content th, {{WRAPPER}} .amw-pd__content td' => 'text-align: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('table_block_gap', [
+            'label'      => __('فاصله جدول از متن اطراف', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 80]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content table' => 'margin-block: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_control('heading_table_head', [
+            'label'     => __('سطر عنوان (th)', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('th_bg', [
+            'label'     => __('پس‌زمینه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content th' => 'background-color: {{VALUE}};'],
+        ]);
+
+        $this->add_control('th_color', [
+            'label'     => __('رنگ متن', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content th' => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'th_typography',
+            'selector' => '{{WRAPPER}} .amw-pd__content th',
+        ]);
+
+        $this->add_control('heading_table_cells', [
+            'label'     => __('سلول‌ها (td)', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('td_bg', [
+            'label'     => __('پس‌زمینه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content td' => 'background-color: {{VALUE}};'],
+        ]);
+
+        $this->add_control('td_stripe_bg', [
+            'label'       => __('پس‌زمینه سطرهای زوج (زبرا)', 'almasara-widgets'),
+            'type'        => Controls_Manager::COLOR,
+            'description' => __('برای خوانایی جدول‌های بلند، یکی‌درمیون رنگ می‌گیرند.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-pd__content tr:nth-child(even) td' => 'background-color: {{VALUE}};'],
+        ]);
+
+        $this->add_control('td_color', [
+            'label'     => __('رنگ متن', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content td' => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'td_typography',
+            'selector' => '{{WRAPPER}} .amw-pd__content td',
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    /** استایل — بلاک‌کوت */
+    private function register_blockquote_style_controls(): void {
+        $this->start_controls_section('section_style_blockquote', [
+            'label' => __('بلاک‌کوت (نقل‌قول)', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
+        ]);
+
+        $this->add_control('bq_bg', [
+            'label'     => __('پس‌زمینه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content blockquote' => 'background-color: {{VALUE}};'],
+        ]);
+
+        $this->add_control('bq_border_color', [
+            'label'     => __('رنگ خط کنار', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content blockquote' => 'border-inline-start-style: solid; border-inline-start-color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('bq_border_width', [
+            'label'      => __('ضخامت خط کنار', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0, 'max' => 12]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content blockquote' => 'border-inline-start-width: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('bq_padding', [
+            'label'      => __('پدینگ', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content blockquote' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('bq_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content blockquote' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('bq_block_gap', [
+            'label'      => __('فاصله از متن اطراف', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 80]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content blockquote' => 'margin-block: {{SIZE}}{{UNIT}}; margin-inline: 0;',
+            ],
+        ]);
+
+        $this->add_control('bq_color', [
+            'label'     => __('رنگ متن', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'separator' => 'before',
+            'selectors' => ['{{WRAPPER}} .amw-pd__content blockquote' => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'bq_typography',
+            'selector' => '{{WRAPPER}} .amw-pd__content blockquote',
         ]);
 
         $this->end_controls_section();

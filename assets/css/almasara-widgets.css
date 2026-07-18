@@ -1120,3 +1120,30 @@ body.amw-pg-noscroll {
 	color: #33415e;
 	font-size: 14px;
 }
+
+/* ---------- عناصر متن ویجت توضیحات: جدول و بلاک‌کوت ---------- */
+
+.amw-pd__content table {
+	width: 100%;
+	max-width: 100%;
+	border-collapse: collapse;
+}
+
+.amw-pd__content th,
+.amw-pd__content td {
+	border: 1px solid #e4e7ee;
+	padding: 10px 14px;
+}
+
+.amw-pd__content th {
+	background-color: #f6f7fb;
+	font-weight: 700;
+}
+
+.amw-pd__content blockquote {
+	margin: 20px 0;
+	padding: 14px 18px;
+	background-color: #f6f7fb;
+	border-inline-start: 4px solid #16265c;
+	border-radius: 8px;
+}
