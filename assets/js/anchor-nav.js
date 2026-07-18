@@ -45,30 +45,64 @@
 
 		var ticking = false;
 		var activeIndex = -1;
+		var itemsEl = nav.querySelector('.amw-nav__items');
+
+		// مشخصات sticky یک‌بار خوانده و کش می‌شود (نه در هر فریم اسکرول)
+		var isSticky = false;
+		var stickyTop = 0;
+
+		function readStickyMeta() {
+			var cs = getComputedStyle(nav);
+			isSticky = cs.position === 'sticky';
+			stickyTop = parseInt(cs.top, 10) || 0;
+		}
+		readStickyMeta();
+		window.addEventListener('resize', readStickyMeta, { passive: true });
 
 		// عنوان داینامیک: متن تب فعال با انیمیشن رول ۳۶۰ درجه
 		var titleIn = nav.querySelector('.amw-nav__title-in');
 		var dynTitle = nav.dataset.dyntitle === '1' && titleIn;
 		var defaultTitle = titleIn ? titleIn.textContent : '';
 		var rolling = false;
+		var pendingRoll = null;
 
 		function rollTitle(text, direction) {
-			if (titleIn.textContent === text || rolling) {
-				if (!rolling) {
-					return;
-				}
-				// اگر وسط انیمیشن هستیم فقط متن نهایی را به‌روز نگه می‌داریم
+			if (rolling) {
+				pendingRoll = { text: text, direction: direction };
+				return;
+			}
+			if (titleIn.textContent === text) {
+				return;
 			}
 			rolling = true;
-			var cls = direction === 'down' ? 'amw-roll-down' : 'amw-roll-up';
-			titleIn.classList.add(cls);
+			titleIn.classList.add(direction === 'down' ? 'amw-roll-down' : 'amw-roll-up');
 			setTimeout(function () {
 				titleIn.textContent = text;
 			}, 250);
 			setTimeout(function () {
 				titleIn.classList.remove('amw-roll-down', 'amw-roll-up');
 				rolling = false;
+				if (pendingRoll) {
+					var next = pendingRoll;
+					pendingRoll = null;
+					rollTitle(next.text, next.direction);
+				}
 			}, 520);
+		}
+
+		// فقط «نوار تب‌ها» را افقی اسکرول می‌کند — نه صفحه را
+		function centerActiveTab(link) {
+			if (!itemsEl || itemsEl.scrollWidth <= itemsEl.clientWidth + 2) {
+				return;
+			}
+			var stripRect = itemsEl.getBoundingClientRect();
+			var linkRect = link.getBoundingClientRect();
+			var delta = (linkRect.left + linkRect.width / 2) - (stripRect.left + stripRect.width / 2);
+			if (itemsEl.scrollBy) {
+				itemsEl.scrollBy({ left: delta, behavior: 'smooth' });
+			} else {
+				itemsEl.scrollLeft += delta;
+			}
 		}
 
 		function spy() {
@@ -82,24 +116,24 @@
 					activeIndex = i;
 				}
 			});
-			pairs.forEach(function (pair) {
-				pair.link.classList.toggle('is-active', pair === active);
-			});
 
 			if (activeIndex !== previousIndex) {
-				// تب فعال داخل نوار قابل اسکرول به دید بیاید
-				if (active && active.link.scrollIntoView) {
-					active.link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				pairs.forEach(function (pair) {
+					pair.link.classList.toggle('is-active', pair === active);
+				});
+				if (active) {
+					centerActiveTab(active.link);
 				}
 				if (dynTitle) {
-					var text = active ? active.link.textContent.trim() : defaultTitle;
-					rollTitle(text, activeIndex > previousIndex ? 'down' : 'up');
+					rollTitle(
+						active ? active.link.textContent.trim() : defaultTitle,
+						activeIndex > previousIndex ? 'down' : 'up'
+					);
 				}
 			}
 
-			// کلاس is-stuck هنگام چسبیدن به بالا (برای استایل حالت چسبیده)
-			if (getComputedStyle(nav).position === 'sticky') {
-				var stickyTop = parseInt(getComputedStyle(nav).top, 10) || 0;
+			// کلاس is-stuck هنگام چسبیدن (برای استایل حالت چسبیده)
+			if (isSticky) {
 				nav.classList.toggle('is-stuck', Math.round(nav.getBoundingClientRect().top) <= stickyTop + 1 && window.scrollY > 10);
 			}
 		}

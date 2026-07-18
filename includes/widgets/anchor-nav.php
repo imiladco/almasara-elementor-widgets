@@ -261,6 +261,15 @@ class Anchor_Nav extends Widget_Base {
             'selectors' => ['{{WRAPPER}} .amw-nav' => 'flex-wrap: {{VALUE}};'],
         ]);
 
+        $this->add_responsive_control('lead_gap', [
+            'label'       => __('فاصله فلش‌ها و عنوان', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px', 'em'],
+            'range'       => ['px' => ['min' => 0, 'max' => 40]],
+            'description' => __('فلش‌ها و عنوان در یک گروه‌اند؛ این فاصله داخل گروه است. فاصله گروه تا تب‌ها با «تراز کردن محتوا» (مثلاً فاصله بین) و «شکاف‌ها» کنترل می‌شود.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-nav__lead' => 'gap: {{SIZE}}{{UNIT}};'],
+        ]);
+
         $this->add_control('heading_items_flex', [
             'label'     => __('چیدمان تب‌ها', 'almasara-widgets'),
             'type'      => Controls_Manager::HEADING,
@@ -558,21 +567,23 @@ class Anchor_Nav extends Widget_Base {
 
         ?>
         <div <?php $this->print_render_attribute_string('nav'); ?>>
-            <?php if ('yes' === $settings['show_steps']) : ?>
-                <span class="amw-nav__steps">
-                    <button type="button" class="amw-nav__step amw-nav__step--up" aria-label="<?php echo esc_attr__('بخش قبلی', 'almasara-widgets'); ?>">
-                        <?php $this->render_step_icon($settings, 'up'); ?>
-                    </button>
-                    <span class="amw-nav__step-dash" aria-hidden="true"></span>
-                    <button type="button" class="amw-nav__step amw-nav__step--down" aria-label="<?php echo esc_attr__('بخش بعدی', 'almasara-widgets'); ?>">
-                        <?php $this->render_step_icon($settings, 'down'); ?>
-                    </button>
-                </span>
-            <?php endif; ?>
+            <div class="amw-nav__lead">
+                <?php if ('yes' === $settings['show_steps']) : ?>
+                    <span class="amw-nav__steps">
+                        <button type="button" class="amw-nav__step amw-nav__step--up" aria-label="<?php echo esc_attr__('بخش قبلی', 'almasara-widgets'); ?>">
+                            <?php $this->render_step_icon($settings, 'up'); ?>
+                        </button>
+                        <span class="amw-nav__step-dash" aria-hidden="true"></span>
+                        <button type="button" class="amw-nav__step amw-nav__step--down" aria-label="<?php echo esc_attr__('بخش بعدی', 'almasara-widgets'); ?>">
+                            <?php $this->render_step_icon($settings, 'down'); ?>
+                        </button>
+                    </span>
+                <?php endif; ?>
 
-            <?php if ('' !== $settings['side_title']) : ?>
-                <span class="amw-nav__title"><span class="amw-nav__title-in"><?php echo esc_html($settings['side_title']); ?></span></span>
-            <?php endif; ?>
+                <?php if ('' !== $settings['side_title']) : ?>
+                    <span class="amw-nav__title"><span class="amw-nav__title-in"><?php echo esc_html($settings['side_title']); ?></span></span>
+                <?php endif; ?>
+            </div>
 
             <nav class="amw-nav__items" aria-label="<?php echo esc_attr__('دسترسی سریع به بخش‌های محصول', 'almasara-widgets'); ?>">
                 <?php foreach ($items as $item) :

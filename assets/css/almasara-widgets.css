@@ -600,6 +600,15 @@ body.amw-pg-noscroll {
 .amw-nav {
 	position: sticky;
 	top: 0;
+	justify-content: space-between;
+}
+
+/* گروه فلش‌ها + عنوان — تا فاصله بینابینی با تب‌ها درست تنظیم شود */
+.amw-nav__lead {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
 }
 
 .amw-nav__title {
