@@ -58,6 +58,9 @@ class Product_Description extends Widget_Base {
         // تب استایل
         $this->register_intro_style_controls();
         $this->register_description_style_controls();
+        $this->register_headings_style_controls();
+        $this->register_inline_style_controls();
+        $this->register_lists_style_controls();
     }
 
     /** محتوا — چیدمان: فقط سطر معرفی (از Trait) */
@@ -149,6 +152,16 @@ class Product_Description extends Widget_Base {
             'selector' => '{{WRAPPER}} .amw-pd__content',
         ]);
 
+        $this->add_responsive_control('paragraph_spacing', [
+            'label'      => __('فاصله بین پاراگراف‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 80]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content p' => 'margin-block-start: 0; margin-block-end: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
         $this->add_responsive_control('description_align', [
             'label'     => __('چینش متن', 'almasara-widgets'),
             'type'      => Controls_Manager::CHOOSE,
@@ -207,6 +220,222 @@ class Product_Description extends Widget_Base {
 
         $this->end_controls_tab();
         $this->end_controls_tabs();
+
+        $this->end_controls_section();
+    }
+
+    /** استایل — عنوان‌های داخل متن */
+    private function register_headings_style_controls(): void {
+        $this->start_controls_section('section_style_headings', [
+            'label' => __('عنوان‌های متن', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'headings_typography',
+            'label'    => __('تایپوگرافی (همه عنوان‌ها)', 'almasara-widgets'),
+            'selector' => '{{WRAPPER}} .amw-pd__content h1, {{WRAPPER}} .amw-pd__content h2, {{WRAPPER}} .amw-pd__content h3, {{WRAPPER}} .amw-pd__content h4, {{WRAPPER}} .amw-pd__content h5, {{WRAPPER}} .amw-pd__content h6',
+        ]);
+
+        $this->add_control('headings_color', [
+            'label'     => __('رنگ (همه عنوان‌ها)', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content h1, {{WRAPPER}} .amw-pd__content h2, {{WRAPPER}} .amw-pd__content h3, {{WRAPPER}} .amw-pd__content h4, {{WRAPPER}} .amw-pd__content h5, {{WRAPPER}} .amw-pd__content h6' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('headings_spacing_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('فاصله بالا و پایین هر تگ عنوان را جداگانه تنظیم کنید:', 'almasara-widgets'),
+            'content_classes' => 'elementor-panel-alert elementor-panel-alert-info',
+            'separator'       => 'before',
+        ]);
+
+        foreach (['h2', 'h3', 'h4', 'h5', 'h6'] as $tag) {
+            $this->add_responsive_control('heading_margin_' . $tag, [
+                'label'              => sprintf(__('فاصله %s (بالا / پایین)', 'almasara-widgets'), strtoupper($tag)),
+                'type'               => Controls_Manager::DIMENSIONS,
+                'size_units'         => ['px', 'em'],
+                'allowed_dimensions' => 'vertical',
+                'selectors'          => [
+                    '{{WRAPPER}} .amw-pd__content ' . $tag => 'margin-block-start: {{TOP}}{{UNIT}}; margin-block-end: {{BOTTOM}}{{UNIT}};',
+                ],
+            ]);
+        }
+
+        $this->end_controls_section();
+    }
+
+    /** استایل — لینک‌ها و متن بولد */
+    private function register_inline_style_controls(): void {
+        $this->start_controls_section('section_style_inline', [
+            'label' => __('لینک‌ها و بولد', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
+        ]);
+
+        $this->add_control('heading_links', [
+            'label' => __('لینک‌ها', 'almasara-widgets'),
+            'type'  => Controls_Manager::HEADING,
+        ]);
+
+        $this->start_controls_tabs('link_tabs');
+
+        $this->start_controls_tab('link_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->add_control('link_color', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content a' => 'color: {{VALUE}};'],
+        ]);
+        $this->add_control('link_decoration', [
+            'label'     => __('خط زیر', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => '',
+            'options'   => [
+                ''          => __('پیش‌فرض', 'almasara-widgets'),
+                'underline' => __('داشته باشد', 'almasara-widgets'),
+                'none'      => __('نداشته باشد', 'almasara-widgets'),
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-pd__content a' => 'text-decoration: {{VALUE}};'],
+        ]);
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('link_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->add_control('link_color_hover', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => ['{{WRAPPER}} .amw-pd__content a:hover' => 'color: {{VALUE}};'],
+        ]);
+        $this->add_control('link_decoration_hover', [
+            'label'     => __('خط زیر', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => '',
+            'options'   => [
+                ''          => __('پیش‌فرض', 'almasara-widgets'),
+                'underline' => __('داشته باشد', 'almasara-widgets'),
+                'none'      => __('نداشته باشد', 'almasara-widgets'),
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-pd__content a:hover' => 'text-decoration: {{VALUE}};'],
+        ]);
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->add_control('heading_bold', [
+            'label'     => __('متن بولد', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('bold_color', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content strong, {{WRAPPER}} .amw-pd__content b' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control('bold_weight', [
+            'label'     => __('وزن فونت', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => '',
+            'options'   => [
+                ''    => __('پیش‌فرض', 'almasara-widgets'),
+                '500' => '500',
+                '600' => '600',
+                '700' => '700',
+                '800' => '800',
+                '900' => '900',
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content strong, {{WRAPPER}} .amw-pd__content b' => 'font-weight: {{VALUE}};',
+            ],
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    /** استایل — لیست‌ها و بولت‌ها */
+    private function register_lists_style_controls(): void {
+        $this->start_controls_section('section_style_lists', [
+            'label' => __('لیست‌ها (بولت‌ها)', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
+        ]);
+
+        $this->add_control('list_marker_style', [
+            'label'     => __('شکل بولت', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => '',
+            'options'   => [
+                ''       => __('پیش‌فرض', 'almasara-widgets'),
+                'disc'   => __('دایره توپر', 'almasara-widgets'),
+                'circle' => __('دایره توخالی', 'almasara-widgets'),
+                'square' => __('مربع', 'almasara-widgets'),
+                'none'   => __('بدون بولت', 'almasara-widgets'),
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-pd__content ul' => 'list-style-type: {{VALUE}};'],
+        ]);
+
+        $this->add_control('marker_color', [
+            'label'     => __('رنگ بولت/شماره', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [
+                '{{WRAPPER}} .amw-pd__content li::marker' => 'color: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('marker_size', [
+            'label'      => __('اندازه بولت/شماره', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 8, 'max' => 40]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content li::marker' => 'font-size: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('list_indent', [
+            'label'      => __('تورفتگی لیست', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 80]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content ul, {{WRAPPER}} .amw-pd__content ol' => 'padding-inline-start: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('list_item_gap', [
+            'label'      => __('فاصله بین آیتم‌ها', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 40]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content li' => 'margin-block-end: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_responsive_control('list_block_gap', [
+            'label'      => __('فاصله لیست از متن اطراف', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', 'em'],
+            'range'      => ['px' => ['min' => 0, 'max' => 80]],
+            'selectors'  => [
+                '{{WRAPPER}} .amw-pd__content ul, {{WRAPPER}} .amw-pd__content ol' => 'margin-block: {{SIZE}}{{UNIT}};',
+            ],
+        ]);
+
+        $this->add_control('list_text_color', [
+            'label'     => __('رنگ متن آیتم‌ها', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'separator' => 'before',
+            'selectors' => ['{{WRAPPER}} .amw-pd__content li' => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => 'list_typography',
+            'label'    => __('تایپوگرافی آیتم‌ها', 'almasara-widgets'),
+            'selector' => '{{WRAPPER}} .amw-pd__content li',
+        ]);
 
         $this->end_controls_section();
     }
