@@ -597,7 +597,7 @@ body.amw-pg-noscroll {
 	z-index: 20;
 }
 
-.amw-nav--sticky {
+.amw-nav {
 	position: sticky;
 	top: 0;
 }
@@ -607,6 +607,41 @@ body.amw-pg-noscroll {
 	font-weight: 800;
 	color: #1a2b4a;
 	white-space: nowrap;
+	perspective: 400px;
+	display: inline-block;
+}
+
+.amw-nav__title-in {
+	display: inline-block;
+	transform-origin: center center;
+}
+
+/* رول ۳۶۰ درجه عنوان داینامیک؛ متن در نیمه انیمیشن (۹۰ درجه، لحظه ناپدید بودن) عوض می‌شود */
+@keyframes amw-roll-down {
+	to {
+		transform: rotateX(-360deg);
+	}
+}
+
+@keyframes amw-roll-up {
+	to {
+		transform: rotateX(360deg);
+	}
+}
+
+.amw-nav__title-in.amw-roll-down {
+	animation: amw-roll-down 0.5s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+.amw-nav__title-in.amw-roll-up {
+	animation: amw-roll-up 0.5s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.amw-nav__title-in.amw-roll-down,
+	.amw-nav__title-in.amw-roll-up {
+		animation: none;
+	}
 }
 
 .amw-nav__items {
@@ -652,17 +687,24 @@ body.amw-pg-noscroll {
 
 .amw-nav__step {
 	display: inline-flex;
-	padding: 1px;
+	padding: 2px;
 	border: 0;
+	border-radius: 4px;
 	background: none;
 	color: #16265c;
 	cursor: pointer;
 	line-height: 0;
-	transition: color 0.2s ease, transform 0.2s ease;
+	transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
 .amw-nav__step:hover {
 	transform: scale(1.15);
+}
+
+.amw-nav__step img {
+	width: 14px;
+	height: auto;
+	display: block;
 }
 
 .amw-nav__step-dash {

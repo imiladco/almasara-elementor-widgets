@@ -46,9 +46,35 @@
 		var ticking = false;
 		var activeIndex = -1;
 
+		// عنوان داینامیک: متن تب فعال با انیمیشن رول ۳۶۰ درجه
+		var titleIn = nav.querySelector('.amw-nav__title-in');
+		var dynTitle = nav.dataset.dyntitle === '1' && titleIn;
+		var defaultTitle = titleIn ? titleIn.textContent : '';
+		var rolling = false;
+
+		function rollTitle(text, direction) {
+			if (titleIn.textContent === text || rolling) {
+				if (!rolling) {
+					return;
+				}
+				// اگر وسط انیمیشن هستیم فقط متن نهایی را به‌روز نگه می‌داریم
+			}
+			rolling = true;
+			var cls = direction === 'down' ? 'amw-roll-down' : 'amw-roll-up';
+			titleIn.classList.add(cls);
+			setTimeout(function () {
+				titleIn.textContent = text;
+			}, 250);
+			setTimeout(function () {
+				titleIn.classList.remove('amw-roll-down', 'amw-roll-up');
+				rolling = false;
+			}, 520);
+		}
+
 		function spy() {
 			ticking = false;
 			var active = null;
+			var previousIndex = activeIndex;
 			activeIndex = -1;
 			pairs.forEach(function (pair, i) {
 				if (pair.target.getBoundingClientRect().top - offset - 10 <= 0) {
@@ -59,6 +85,23 @@
 			pairs.forEach(function (pair) {
 				pair.link.classList.toggle('is-active', pair === active);
 			});
+
+			if (activeIndex !== previousIndex) {
+				// تب فعال داخل نوار قابل اسکرول به دید بیاید
+				if (active && active.link.scrollIntoView) {
+					active.link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				}
+				if (dynTitle) {
+					var text = active ? active.link.textContent.trim() : defaultTitle;
+					rollTitle(text, activeIndex > previousIndex ? 'down' : 'up');
+				}
+			}
+
+			// کلاس is-stuck هنگام چسبیدن به بالا (برای استایل حالت چسبیده)
+			if (getComputedStyle(nav).position === 'sticky') {
+				var stickyTop = parseInt(getComputedStyle(nav).top, 10) || 0;
+				nav.classList.toggle('is-stuck', Math.round(nav.getBoundingClientRect().top) <= stickyTop + 1 && window.scrollY > 10);
+			}
 		}
 
 		// فلش‌های پیمایش: پرش به بخش قبلی/بعدی
