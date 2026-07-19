@@ -1228,3 +1228,123 @@ body.amw-pg-noscroll {
 	border-inline-start: 4px solid #16265c;
 	border-radius: 8px;
 }
+
+/* ---------- ویجت افزودن به سبد ---------- */
+
+.amw-atc {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: 12px;
+}
+
+.amw-atc__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--amw-atc-icongap, 8px);
+	padding: 12px 24px;
+	border: 1px solid transparent;
+	border-radius: 10px;
+	background-color: #16265c;
+	color: #fff;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	text-decoration: none;
+	transition: all 0.25s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.amw-atc__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.amw-atc__icon svg {
+	width: var(--amw-atc-icon, 20px);
+	height: var(--amw-atc-icon, 20px);
+	display: block;
+}
+
+.amw-atc__icon img {
+	width: var(--amw-atc-icon, 20px);
+	height: auto;
+	display: block;
+}
+
+.amw-atc__price {
+	opacity: 0.9;
+	font-weight: 800;
+}
+
+/* حالت‌های ووکامرس روی دکمه */
+.amw-atc__btn.loading {
+	opacity: 0.7;
+	pointer-events: none;
+}
+
+.amw-atc__btn.loading .amw-atc__icon {
+	animation: amw-atc-spin 0.7s linear infinite;
+}
+
+@keyframes amw-atc-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* مخفی کردن لینک «مشاهده سبد» پیش‌فرض ووکامرس */
+.amw-atc--hide-viewcart .added_to_cart {
+	display: none !important;
+}
+
+/* انتخابگر تعداد */
+.amw-atc__qty {
+	display: inline-flex;
+	align-items: center;
+	height: 48px;
+	border: 1px solid #e4e7ee;
+	border-radius: 10px;
+	overflow: hidden;
+	background: #fff;
+}
+
+.amw-atc__step {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 100%;
+	border: 0;
+	background: none;
+	color: #1a2b4a;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.amw-atc__qty-input {
+	width: 48px;
+	height: 100%;
+	border: 0;
+	background: none;
+	text-align: center;
+	font: inherit;
+	font-weight: 700;
+	color: #1a2b4a;
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.amw-atc__qty-input::-webkit-outer-spin-button,
+.amw-atc__qty-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.amw-atc__qty:not(.amw-atc__qty--stepper) {
+	padding: 0 8px;
+}
