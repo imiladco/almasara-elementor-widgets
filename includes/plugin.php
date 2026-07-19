@@ -51,7 +51,6 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/anchor-nav.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-faq.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
-        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/add-to-cart.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
@@ -59,7 +58,6 @@ final class Plugin {
         $widgets_manager->register(new Widgets\Anchor_Nav());
         $widgets_manager->register(new Widgets\Product_Faq());
         $widgets_manager->register(new Widgets\Product_Reviews());
-        $widgets_manager->register(new Widgets\Add_To_Cart());
     }
 
     /**
@@ -71,7 +69,6 @@ final class Plugin {
             'almasara-nav'     => 'anchor-nav.js',
             'almasara-faq'     => 'faq.js',
             'almasara-reviews' => 'reviews.js',
-            'almasara-atc'     => 'add-to-cart.js',
         ];
 
         foreach ($scripts as $handle => $file) {
