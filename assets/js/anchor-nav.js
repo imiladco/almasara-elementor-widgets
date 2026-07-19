@@ -1,8 +1,22 @@
 /**
- * نوار تب چسبان الماسارا — اسکرول نرم + scrollspy
+ * نوار تب چسبان الماسارا — نسخه بازنویسی‌شده
+ *
+ * چسبیدن: موتور جاوااسکریپتی fixed + جای‌نگهدار (placeholder).
+ * position:sticky روی عنصر داخلی ویجت المنتور کار نمی‌کند چون والدش
+ * هم‌قد خود نوار است؛ این موتور مستقل از ساختار کانتینرها همیشه کار می‌کند.
+ *
+ * تشخیص بخش فعال: بر اساس ارتفاع واقعی نوار + آفست چسبیدن هر دستگاه،
+ * نه عدد دستی — به‌همراه حالت انتهای صفحه (آخرین بخش فعال می‌شود).
  */
 (function () {
 	'use strict';
+
+	var isEditor = !!(window.elementorFrontend && window.elementorFrontend.isEditMode && window.elementorFrontend.isEditMode());
+
+	function breakpoint() {
+		var w = window.innerWidth;
+		return w <= 767 ? 'm' : (w <= 1024 ? 't' : 'd');
+	}
 
 	function setup(nav) {
 		if (nav.__amwNav) {
@@ -10,58 +24,81 @@
 		}
 		nav.__amwNav = true;
 
-		var offset = parseInt(nav.dataset.offset, 10) || 0;
+		var itemsEl = nav.querySelector('.amw-nav__items');
 		var links = Array.prototype.slice.call(nav.querySelectorAll('.amw-nav__item'));
 
 		var pairs = links
 			.map(function (link) {
 				var id = (link.getAttribute('href') || '').replace('#', '');
 				var target = id ? document.getElementById(id) : null;
-				if (target) {
-					target.style.scrollMarginTop = offset + 'px';
-				}
 				return target ? { link: link, target: target } : null;
 			})
 			.filter(Boolean);
 
-		links.forEach(function (link) {
-			link.addEventListener('click', function (e) {
-				var id = (link.getAttribute('href') || '').replace('#', '');
-				var target = id ? document.getElementById(id) : null;
-				if (!target) {
-					return;
-				}
-				e.preventDefault();
-				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				if (history.replaceState) {
-					history.replaceState(null, '', '#' + id);
-				}
-			});
-		});
+		/* ---------------- تنظیمات دستگاه جاری ---------------- */
 
-		if (!pairs.length) {
-			return;
+		function cfg() {
+			var bp = breakpoint();
+			return {
+				sticky: nav.getAttribute('data-sticky-' + bp) === '1' && !isEditor,
+				top: parseInt(nav.getAttribute('data-top-' + bp), 10) || 0,
+				extra: parseInt(nav.getAttribute('data-extra-' + bp), 10) || 0
+			};
 		}
 
-		var ticking = false;
-		var activeIndex = -1;
-		var itemsEl = nav.querySelector('.amw-nav__items');
+		/* ---------------- موتور چسبیدن (fixed + placeholder) ---------------- */
 
-		// مشخصات sticky یک‌بار خوانده و کش می‌شود (نه در هر فریم اسکرول)
-		var isSticky = false;
-		var stickyTop = 0;
+		var placeholder = document.createElement('div');
+		placeholder.style.display = 'none';
+		nav.parentNode.insertBefore(placeholder, nav);
 
-		function readStickyMeta() {
-			var cs = getComputedStyle(nav);
-			isSticky = cs.position === 'sticky';
-			stickyTop = parseInt(cs.top, 10) || 0;
+		var stuck = false;
+		var navH = nav.offsetHeight;
+
+		function stick(c) {
+			navH = nav.offsetHeight;
+			var rect = nav.getBoundingClientRect();
+			placeholder.style.height = navH + 'px';
+			placeholder.style.display = 'block';
+			nav.style.position = 'fixed';
+			nav.style.top = c.top + 'px';
+			nav.style.left = rect.left + 'px';
+			nav.style.width = rect.width + 'px';
+			nav.classList.add('is-stuck');
+			stuck = true;
 		}
-		readStickyMeta();
-		window.addEventListener('resize', readStickyMeta, { passive: true });
 
-		// عنوان داینامیک: متن تب فعال با انیمیشن رول ۳۶۰ درجه
+		function unstick() {
+			if (!stuck) {
+				return;
+			}
+			placeholder.style.display = 'none';
+			nav.style.position = '';
+			nav.style.top = '';
+			nav.style.left = '';
+			nav.style.width = '';
+			nav.classList.remove('is-stuck');
+			stuck = false;
+		}
+
+		function updateSticky(c) {
+			if (!c.sticky) {
+				unstick();
+				return;
+			}
+			if (!stuck) {
+				if (nav.getBoundingClientRect().top <= c.top) {
+					stick(c);
+				}
+			} else if (placeholder.getBoundingClientRect().top > c.top) {
+				unstick();
+			}
+		}
+
+		/* ---------------- عنوان داینامیک با رول ۳۶۰ درجه ---------------- */
+
 		var titleIn = nav.querySelector('.amw-nav__title-in');
-		var dynTitle = nav.dataset.dyntitle === '1' && titleIn;
+		var dynTitle = nav.getAttribute('data-dyntitle') === '1' && titleIn;
 		var defaultTitle = titleIn ? titleIn.textContent : '';
 		var rolling = false;
 		var pendingRoll = null;
@@ -90,7 +127,10 @@
 			}, 520);
 		}
 
-		// فقط «نوار تب‌ها» را افقی اسکرول می‌کند — نه صفحه را
+		/* ---------------- تشخیص بخش فعال ---------------- */
+
+		var activeIndex = -1;
+
 		function centerActiveTab(link) {
 			if (!itemsEl || itemsEl.scrollWidth <= itemsEl.clientWidth + 2) {
 				return;
@@ -105,22 +145,34 @@
 			}
 		}
 
-		function spy() {
-			ticking = false;
-			var active = null;
+		function spy(c) {
+			if (!pairs.length) {
+				return;
+			}
+
+			// خط تشخیص: زیر لبه پایین نوار (ارتفاع واقعی + آفست چسبیدن + فاصله اضافه)
+			var line = c.top + navH + c.extra + 4;
 			var previousIndex = activeIndex;
-			activeIndex = -1;
-			pairs.forEach(function (pair, i) {
-				if (pair.target.getBoundingClientRect().top - offset - 10 <= 0) {
-					active = pair;
-					activeIndex = i;
+			var current = -1;
+
+			for (var i = 0; i < pairs.length; i++) {
+				if (pairs[i].target.getBoundingClientRect().top <= line) {
+					current = i;
 				}
-			});
+			}
+
+			// انتهای صفحه: آخرین بخش فعال شود حتی اگر کوتاه باشد
+			if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+				current = pairs.length - 1;
+			}
+
+			activeIndex = current;
 
 			if (activeIndex !== previousIndex) {
-				pairs.forEach(function (pair) {
-					pair.link.classList.toggle('is-active', pair === active);
+				pairs.forEach(function (pair, idx) {
+					pair.link.classList.toggle('is-active', idx === activeIndex);
 				});
+				var active = activeIndex >= 0 ? pairs[activeIndex] : null;
 				if (active) {
 					centerActiveTab(active.link);
 				}
@@ -131,42 +183,85 @@
 					);
 				}
 			}
-
-			// کلاس is-stuck هنگام چسبیدن (برای استایل حالت چسبیده)
-			if (isSticky) {
-				nav.classList.toggle('is-stuck', Math.round(nav.getBoundingClientRect().top) <= stickyTop + 1 && window.scrollY > 10);
-			}
 		}
 
-		// فلش‌های پیمایش: پرش به بخش قبلی/بعدی
-		function goTo(index) {
-			if (index < 0 || index >= pairs.length) {
-				return;
-			}
-			pairs[index].target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		/* ---------------- اسکرول نرم به بخش‌ها ---------------- */
+
+		function scrollToTarget(target) {
+			var c = cfg();
+			// اگر نوار هنوز نچسبیده، بعد از اسکرول می‌چسبد؛ ارتفاعش را همیشه لحاظ کن
+			var y = target.getBoundingClientRect().top + window.scrollY - c.top - navH - c.extra;
+			window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 		}
+
+		links.forEach(function (link) {
+			link.addEventListener('click', function (e) {
+				var id = (link.getAttribute('href') || '').replace('#', '');
+				var target = id ? document.getElementById(id) : null;
+				if (!target) {
+					return;
+				}
+				e.preventDefault();
+				scrollToTarget(target);
+				if (history.replaceState) {
+					history.replaceState(null, '', '#' + id);
+				}
+			});
+		});
 
 		var stepUp = nav.querySelector('.amw-nav__step--up');
 		var stepDown = nav.querySelector('.amw-nav__step--down');
 		if (stepUp) {
 			stepUp.addEventListener('click', function () {
-				goTo(activeIndex <= 0 ? 0 : activeIndex - 1);
+				var i = activeIndex <= 0 ? 0 : activeIndex - 1;
+				if (pairs[i]) {
+					scrollToTarget(pairs[i].target);
+				}
 			});
 		}
 		if (stepDown) {
 			stepDown.addEventListener('click', function () {
-				goTo(activeIndex >= pairs.length - 1 ? pairs.length - 1 : activeIndex + 1);
+				var i = activeIndex >= pairs.length - 1 ? pairs.length - 1 : activeIndex + 1;
+				if (pairs[i]) {
+					scrollToTarget(pairs[i].target);
+				}
 			});
 		}
 
-		window.addEventListener('scroll', function () {
+		/* ---------------- حلقه اسکرول/ریسایز ---------------- */
+
+		var ticking = false;
+
+		function onFrame() {
+			ticking = false;
+			var c = cfg();
+			updateSticky(c);
+			spy(c);
+		}
+
+		function requestFrame() {
 			if (!ticking) {
 				ticking = true;
-				requestAnimationFrame(spy);
+				requestAnimationFrame(onFrame);
 			}
+		}
+
+		window.addEventListener('scroll', requestFrame, { passive: true });
+
+		window.addEventListener('resize', function () {
+			// هندسه عوض شده: جدا کن، دوباره اندازه بگیر و از نو ارزیابی کن
+			unstick();
+			navH = nav.offsetHeight;
+			requestFrame();
 		}, { passive: true });
 
-		spy();
+		// بعد از لود کامل (تصاویر ارتفاع صفحه را عوض می‌کنند) دوباره ارزیابی کن
+		window.addEventListener('load', function () {
+			navH = nav.offsetHeight;
+			requestFrame();
+		});
+
+		onFrame();
 	}
 
 	function initAll(scope) {

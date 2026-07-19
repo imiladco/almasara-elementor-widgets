@@ -139,13 +139,10 @@ class Anchor_Nav extends Widget_Base {
             'tablet_default' => 'sticky',
             'mobile_default' => 'sticky',
             'options'        => [
-                'sticky' => __('چسبان (sticky)', 'almasara-widgets'),
+                'sticky' => __('چسبان', 'almasara-widgets'),
                 'static' => __('عادی (بدون چسبیدن)', 'almasara-widgets'),
             ],
-            'description'    => __('برای دسکتاپ/تبلت/موبایل جداگانه تنظیم می‌شود (آیکون نمایشگر کنار عنوان کنترل).', 'almasara-widgets'),
-            'selectors'      => [
-                '{{WRAPPER}} .amw-nav' => 'position: {{VALUE}};',
-            ],
+            'description'    => __('با موتور جاوااسکریپتی (fixed + جای‌نگهدار) پیاده شده تا مستقل از ساختار کانتینرهای المنتور همیشه کار کند. برای هر دستگاه جداگانه تنظیم می‌شود.', 'almasara-widgets'),
         ]);
 
         $this->add_responsive_control('sticky_offset', [
@@ -155,25 +152,22 @@ class Anchor_Nav extends Widget_Base {
             'range'       => ['px' => ['min' => 0, 'max' => 200]],
             'default'     => ['size' => 0, 'unit' => 'px'],
             'description' => __('اگر هدر چسبان دارید، ارتفاع هدر را بدهید.', 'almasara-widgets'),
-            'selectors'   => [
-                '{{WRAPPER}} .amw-nav' => 'top: {{SIZE}}{{UNIT}};',
-            ],
         ]);
 
         $this->add_control('sticky_zindex', [
             'label'     => __('z-index', 'almasara-widgets'),
             'type'      => Controls_Manager::NUMBER,
-            'default'   => 20,
+            'default'   => 90,
             'selectors' => ['{{WRAPPER}} .amw-nav' => 'z-index: {{VALUE}};'],
         ]);
 
         $this->add_responsive_control('scroll_offset', [
-            'label'       => __('فاصله توقف اسکرول از بالای بخش', 'almasara-widgets'),
+            'label'       => __('فاصله اضافه توقف اسکرول', 'almasara-widgets'),
             'type'        => Controls_Manager::SLIDER,
             'size_units'  => ['px'],
-            'range'       => ['px' => ['min' => 0, 'max' => 300]],
-            'default'     => ['size' => 90, 'unit' => 'px'],
-            'description' => __('معمولاً ارتفاع نوار + هدر چسبان؛ تا عنوان بخش زیر نوار نرود.', 'almasara-widgets'),
+            'range'       => ['px' => ['min' => 0, 'max' => 200]],
+            'default'     => ['size' => 10, 'unit' => 'px'],
+            'description' => __('ارتفاع نوار و فاصله چسبیدن خودکار محاسبه می‌شوند؛ این مقدار فقط فاصله اضافه دلخواه است.', 'almasara-widgets'),
         ]);
 
         $this->end_controls_section();
@@ -557,11 +551,36 @@ class Anchor_Nav extends Widget_Base {
             return;
         }
 
-        $offset = isset($settings['scroll_offset']['size']) ? (int) $settings['scroll_offset']['size'] : 90;
+        // مقادیر ریسپانسیو با وراثت المنتوری: تبلت از دسکتاپ، موبایل از تبلت
+        $slider = static function (array $settings, string $key, int $fallback): int {
+            return (isset($settings[$key]['size']) && '' !== (string) $settings[$key]['size'])
+                ? (int) $settings[$key]['size']
+                : $fallback;
+        };
+
+        $mode_d = !empty($settings['sticky_mode']) ? $settings['sticky_mode'] : 'sticky';
+        $mode_t = !empty($settings['sticky_mode_tablet']) ? $settings['sticky_mode_tablet'] : $mode_d;
+        $mode_m = !empty($settings['sticky_mode_mobile']) ? $settings['sticky_mode_mobile'] : $mode_t;
+
+        $top_d = $slider($settings, 'sticky_offset', 0);
+        $top_t = $slider($settings, 'sticky_offset_tablet', $top_d);
+        $top_m = $slider($settings, 'sticky_offset_mobile', $top_t);
+
+        $extra_d = $slider($settings, 'scroll_offset', 10);
+        $extra_t = $slider($settings, 'scroll_offset_tablet', $extra_d);
+        $extra_m = $slider($settings, 'scroll_offset_mobile', $extra_t);
 
         $this->add_render_attribute('nav', [
             'class'         => 'amw-nav',
-            'data-offset'   => (string) $offset,
+            'data-sticky-d' => 'sticky' === $mode_d ? '1' : '0',
+            'data-sticky-t' => 'sticky' === $mode_t ? '1' : '0',
+            'data-sticky-m' => 'sticky' === $mode_m ? '1' : '0',
+            'data-top-d'    => (string) $top_d,
+            'data-top-t'    => (string) $top_t,
+            'data-top-m'    => (string) $top_m,
+            'data-extra-d'  => (string) $extra_d,
+            'data-extra-t'  => (string) $extra_t,
+            'data-extra-m'  => (string) $extra_m,
             'data-dyntitle' => 'dynamic' === $settings['side_title_mode'] ? '1' : '0',
         ]);
 

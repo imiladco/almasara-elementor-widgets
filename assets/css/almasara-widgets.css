@@ -597,10 +597,10 @@ body.amw-pg-noscroll {
 	z-index: 20;
 }
 
+/* چسبیدن با موتور JS (fixed + جای‌نگهدار) انجام می‌شود — نه position:sticky */
 .amw-nav {
-	position: sticky;
-	top: 0;
 	justify-content: space-between;
+	box-sizing: border-box;
 }
 
 /* گروه فلش‌ها + عنوان — تا فاصله بینابینی با تب‌ها درست تنظیم شود */
