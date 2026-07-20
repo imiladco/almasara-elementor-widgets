@@ -653,7 +653,7 @@ class Product_Attributes extends Widget_Base {
 
             <?php $this->render_intro_row($settings, $scope, $global_link); ?>
 
-            <div class="amw-paw__items<?php echo 'flex' === $settings['items_display'] ? ' amw-flex' : ''; ?>">
+            <div class="amw-paw__items<?php echo 'flex' === ($settings['items_display'] ?? '') ? ' amw-flex' : ''; ?>">
                 <?php foreach ($items as $index => $item) :
                     $item_key = 'item-' . $index;
                     $item_tag = 'div';
