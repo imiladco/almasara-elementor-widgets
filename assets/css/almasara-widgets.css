@@ -1368,3 +1368,133 @@ body.amw-pg-noscroll {
 	font-size: 13px;
 	text-align: center;
 }
+
+/* ---------- بخش محصولات ---------- */
+
+.amw-ps { display: block; }
+
+.amw-ps__header {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.amw-ps__title {
+	margin: 0;
+	white-space: nowrap;
+}
+
+.amw-ps__pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.amw-ps__pill {
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid transparent;
+	background: #f2f4f8;
+	color: #4b5259;
+	font: inherit;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.amw-ps__viewall {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.amw-ps__slider-wrap {
+	position: relative;
+}
+
+.amw-ps__slider {
+	width: 100%;
+}
+
+.amw-ps.is-loading .amw-ps__slider {
+	opacity: .5;
+	pointer-events: none;
+	transition: opacity .2s ease;
+}
+
+.amw-ps__card {
+	height: 100%;
+}
+
+/* ---------- دکمه‌های قبلی/بعدی ---------- */
+
+.amw-ps__btn {
+	--amw-ps-nav-size: 18px;
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	left: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border: 0;
+	border-radius: 50%;
+	background: #fff;
+	color: #16265c;
+	cursor: pointer;
+	z-index: 10;
+	transition: background-color .2s ease, color .2s ease;
+}
+
+.amw-ps__btn--next {
+	left: auto;
+	right: 0;
+}
+
+.amw-ps__btn svg,
+.amw-ps__btn img {
+	width: var(--amw-ps-nav-size);
+	height: var(--amw-ps-nav-size);
+	display: block;
+}
+
+.amw-ps__btn.swiper-button-disabled {
+	opacity: .35;
+	pointer-events: none;
+}
+
+/* ---------- پیجینیشن ---------- */
+
+.amw-ps__pagination.swiper-pagination {
+	position: static !important;
+	display: flex !important;
+	justify-content: center;
+	gap: 6px;
+	margin-top: 16px;
+	width: auto !important;
+}
+
+.amw-ps__pagination .swiper-pagination-bullet {
+	margin: 0 !important;
+	opacity: 1 !important;
+}
+
+/* ---------- پیام ادیتور ---------- */
+
+.amw-ps__notice {
+	padding: 16px;
+	border: 1px dashed #c00;
+	border-radius: 6px;
+	color: #c00;
+	font-size: 13px;
+	text-align: center;
+}

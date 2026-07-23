@@ -21,6 +21,8 @@ final class Plugin {
 
     private function __construct() {
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-extras.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-section-ajax.php';
+        Product_Section_Ajax::init();
 
         add_action('elementor/elements/categories_registered', [$this, 'register_category']);
         add_action('elementor/widgets/register', [$this, 'register_widgets']);
@@ -52,6 +54,7 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-faq.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/hero-slider.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-section.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
@@ -60,6 +63,7 @@ final class Plugin {
         $widgets_manager->register(new Widgets\Product_Faq());
         $widgets_manager->register(new Widgets\Product_Reviews());
         $widgets_manager->register(new Widgets\Hero_Slider());
+        $widgets_manager->register(new Widgets\Product_Section());
     }
 
     /**
@@ -85,18 +89,21 @@ final class Plugin {
         );
 
         $scripts = [
-            'almasara-gallery'     => 'gallery-modal.js',
-            'almasara-nav'         => 'anchor-nav.js',
-            'almasara-faq'         => 'faq.js',
-            'almasara-reviews'     => 'reviews.js',
-            'almasara-hero-slider' => 'hero-slider.js',
+            'almasara-gallery'         => 'gallery-modal.js',
+            'almasara-nav'             => 'anchor-nav.js',
+            'almasara-faq'             => 'faq.js',
+            'almasara-reviews'         => 'reviews.js',
+            'almasara-hero-slider'     => 'hero-slider.js',
+            'almasara-product-section' => 'product-section.js',
         ];
+
+        $needs_swiper = ['almasara-hero-slider', 'almasara-product-section'];
 
         foreach ($scripts as $handle => $file) {
             wp_register_script(
                 $handle,
                 ALMASARA_WIDGETS_URL . 'assets/js/' . $file,
-                'almasara-hero-slider' === $handle ? ['almasara-swiper'] : [],
+                in_array($handle, $needs_swiper, true) ? ['almasara-swiper'] : [],
                 ALMASARA_WIDGETS_VERSION,
                 true
             );
