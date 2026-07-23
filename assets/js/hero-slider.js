@@ -16,10 +16,12 @@
 	}
 
 	function setup(root) {
+		// window.Swiper ممکن است هنوز لود نشده باشد (یا اصلاً عنصر آماده
+		// نباشد) — فلگ init را ست نمی‌کنیم تا تلاش بعدی (از observer) دوباره
+		// امتحان کند؛ همین برای idempotent بودن initAll در فراخوانی مکرر کافی است.
 		if (root.__amwHero || !window.Swiper) {
 			return;
 		}
-		root.__amwHero = true;
 
 		var swiperEl = root.querySelector('.amw-hero__swiper');
 		var skeleton = root.querySelector('.amw-hero__skeleton');
@@ -27,6 +29,19 @@
 			return;
 		}
 
+		root.__amwHero = true;
+
+		try {
+			buildSwiper(root, swiperEl, skeleton);
+		} catch (e) {
+			// اجازه نده خطای خودمان بقیه ویجت‌های صفحه را در همان حلقه بخواباند
+			if (window.console && console.error) {
+				console.error('[almasara-hero-slider] init failed:', e);
+			}
+		}
+	}
+
+	function buildSwiper(root, swiperEl, skeleton) {
 		var cfg = parseCfg(root);
 		var hasNav = !!cfg.navigation && root.querySelector('.amw-hero__btn--prev');
 		var hasPagination = !!cfg.pagination && root.querySelector('.amw-hero__pagination');
@@ -95,5 +110,17 @@
 		initAll(document);
 	} else {
 		document.addEventListener('DOMContentLoaded', function () { initAll(document); });
+	}
+
+	/**
+	 * شبکه ایمنی برای ویرایشگر المنتور: اگر افزونه دیگری در همان حلقه
+	 * frontend/element_ready خطای uncaught بدهد، هوک‌های صف‌شده بعد از آن
+	 * (از جمله همین ویجت) ممکن است اصلاً اجرا نشوند. در آن حالت، هر تغییر
+	 * DOM (که در ویرایشگر مدام اتفاق می‌افتد) دوباره اسکن می‌کند؛ setup()
+	 * روی عنصر آماده‌شده idempotent است، پس فراخوانی مکرر بی‌خطر است.
+	 */
+	if (window.MutationObserver && document.body) {
+		new MutationObserver(function () { initAll(document); })
+			.observe(document.body, { childList: true, subtree: true });
 	}
 })();

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Almasara Elementor Widgets
  * Description:       ویجت‌های اختصاصی المنتور برای فروشگاه الماسارا (جدا از پوسته فرزند)
- * Version:           2.6.1
+ * Version:           2.6.2
  * Author:            Almasara
  * Text Domain:       almasara-widgets
  * Requires PHP:      7.4
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('ALMASARA_WIDGETS_VERSION', '2.6.1');
+define('ALMASARA_WIDGETS_VERSION', '2.6.2');
 define('ALMASARA_WIDGETS_FILE', __FILE__);
 define('ALMASARA_WIDGETS_PATH', plugin_dir_path(__FILE__));
 define('ALMASARA_WIDGETS_URL', plugin_dir_url(__FILE__));
