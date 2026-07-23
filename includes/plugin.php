@@ -68,8 +68,16 @@ final class Plugin {
     public function register_scripts(): void {
         // Swiper فقط با get_script_depends ویجت اسلایدر لود می‌شود — روی
         // بقیه صفحات هیچ هزینه‌ای ندارد.
+        //
+        // نکته حیاتی: handle عمداً «almasara-swiper» است، نه «swiper» ساده.
+        // افزونه‌های دیگر المنتور (مثلاً بسته‌های ویجت اضافه) هم معمولاً
+        // دقیقاً همین نام عمومی «swiper» را برای اسکریپت خودشان رجیستر
+        // می‌کنند؛ چون wp_register_script با یک handle تکراری، ثبت قبلی را
+        // بی‌سروصدا بازنویسی می‌کند، این تداخل باعث می‌شد یا نسخه سوایپر ما
+        // با نسخه آن‌ها عوض شود یا برعکس — و ویجت هرکدام دیرتر اجرا می‌شد
+        // خراب می‌ماند (window.Swiper بین دو کد رقابت می‌کرد).
         wp_register_script(
-            'swiper',
+            'almasara-swiper',
             ALMASARA_WIDGETS_URL . 'assets/vendor/swiper/swiper-bundle.min.js',
             [],
             '11.2.10',
@@ -88,7 +96,7 @@ final class Plugin {
             wp_register_script(
                 $handle,
                 ALMASARA_WIDGETS_URL . 'assets/js/' . $file,
-                'almasara-hero-slider' === $handle ? ['swiper'] : [],
+                'almasara-hero-slider' === $handle ? ['almasara-swiper'] : [],
                 ALMASARA_WIDGETS_VERSION,
                 true
             );
@@ -157,8 +165,9 @@ final class Plugin {
      * ثبت استایل‌ها؛ هر ویجت با get_style_depends فقط در صورت استفاده لودشان می‌کند
      */
     public function register_styles(): void {
+        // handle namespace‌شده — دلیل دقیقاً مثل register_scripts()
         wp_register_style(
-            'swiper',
+            'almasara-swiper',
             ALMASARA_WIDGETS_URL . 'assets/vendor/swiper/swiper-bundle.min.css',
             [],
             '11.2.10'

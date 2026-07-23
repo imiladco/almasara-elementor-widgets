@@ -45,11 +45,11 @@ class Hero_Slider extends Widget_Base {
     }
 
     public function get_style_depends(): array {
-        return ['swiper', 'almasara-widgets'];
+        return ['almasara-swiper', 'almasara-widgets'];
     }
 
     public function get_script_depends(): array {
-        return ['swiper', 'almasara-hero-slider'];
+        return ['almasara-swiper', 'almasara-hero-slider'];
     }
 
     /* =====================================================================
