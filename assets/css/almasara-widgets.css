@@ -1228,3 +1228,143 @@ body.amw-pg-noscroll {
 	border-inline-start: 4px solid #16265c;
 	border-radius: 8px;
 }
+
+/* ---------- اسلایدر هیرو ---------- */
+
+.amw-hero__wrap {
+	position: relative;
+}
+
+.amw-hero__skeleton {
+	--amw-hero-skel-a: #f2f2f2;
+	--amw-hero-skel-b: #e2e2e2;
+	--amw-hero-skel-dur: 1.6s;
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	background: linear-gradient(to right, var(--amw-hero-skel-a) 20%, var(--amw-hero-skel-b) 30%, var(--amw-hero-skel-a) 50%);
+	background-size: 200% 100%;
+	animation: amw-hero-skeleton var(--amw-hero-skel-dur) infinite linear;
+}
+
+@keyframes amw-hero-skeleton {
+	0%   { background-position: -200px 0; }
+	100% { background-position: calc(200px + 100%) 0; }
+}
+
+.amw-hero__swiper {
+	width: 100%;
+	height: 100%;
+}
+
+.amw-hero__link {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.amw-hero__img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+	transition-property: opacity, transform;
+	transition-duration: 1000ms;
+}
+
+/* ---------- نوار کنترل‌ها (پیجینیشن + فلش‌ها) ---------- */
+
+.amw-hero__controls {
+	--amw-hero-bar-bg: #fff;
+	--amw-hero-bar-radius: 20px;
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10;
+	background: var(--amw-hero-bar-bg);
+	border-radius: var(--amw-hero-bar-radius) var(--amw-hero-bar-radius) 0 0;
+}
+
+/* شکل بریده تزئینی دو طرف نوار — با toggle «نمایش برش تزئینی» غیرفعال می‌شود */
+.amw-hero__controls:not(.amw-hero__controls--no-notch)::before,
+.amw-hero__controls:not(.amw-hero__controls--no-notch)::after {
+	content: "";
+	--amw-hero-notch-size: 26px;
+	width: calc(var(--amw-hero-notch-size) * 25 / 26);
+	height: var(--amw-hero-notch-size);
+	position: absolute;
+	border-bottom: 8px solid var(--amw-hero-notch-color, var(--amw-hero-bar-bg));
+	background: none;
+}
+
+.amw-hero__controls:not(.amw-hero__controls--no-notch)::before {
+	border-radius: 0 0 0 39px;
+	border-left: 8px solid var(--amw-hero-notch-color, var(--amw-hero-bar-bg));
+	right: calc(var(--amw-hero-notch-size) * -0.63);
+	transform: rotate(3deg);
+	top: 26px;
+}
+
+.amw-hero__controls:not(.amw-hero__controls--no-notch)::after {
+	border-radius: 0 0 39px 0;
+	border-right: 8px solid var(--amw-hero-notch-color, var(--amw-hero-bar-bg));
+	left: calc(var(--amw-hero-notch-size) * -0.65);
+	top: 27.2px;
+}
+
+.amw-hero__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	flex-shrink: 0;
+	transition: background-color .2s ease, color .2s ease;
+}
+
+.amw-hero__btn svg,
+.amw-hero__btn img {
+	width: var(--amw-hero-nav-size, 24px);
+	height: var(--amw-hero-nav-size, 24px);
+	display: block;
+}
+
+.amw-hero__btn--prev svg,
+.amw-hero__btn--prev img {
+	transform: rotate(180deg);
+}
+
+.amw-hero__pagination.swiper-pagination {
+	position: static !important;
+	display: flex !important;
+	flex-direction: row;
+	align-items: center;
+	width: auto !important;
+}
+
+.amw-hero .swiper-pagination-bullet {
+	--amw-hero-dot: 6px;
+	width: var(--amw-hero-dot);
+	height: var(--amw-hero-dot);
+	display: flex;
+	transition: all .4s ease;
+	margin: 0 !important;
+	opacity: 1 !important;
+}
+
+/* ---------- پیام ادیتور ---------- */
+
+.amw-hero__notice {
+	padding: 16px;
+	border: 1px dashed #c00;
+	border-radius: 6px;
+	color: #c00;
+	font-size: 13px;
+	text-align: center;
+}

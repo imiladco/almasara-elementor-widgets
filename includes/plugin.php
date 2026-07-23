@@ -51,6 +51,7 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/anchor-nav.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-faq.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/hero-slider.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
@@ -58,24 +59,36 @@ final class Plugin {
         $widgets_manager->register(new Widgets\Anchor_Nav());
         $widgets_manager->register(new Widgets\Product_Faq());
         $widgets_manager->register(new Widgets\Product_Reviews());
+        $widgets_manager->register(new Widgets\Hero_Slider());
     }
 
     /**
      * اسکریپت مودال گالری؛ فقط وقتی ویجت گالری در صفحه باشد لود می‌شود
      */
     public function register_scripts(): void {
+        // Swiper فقط با get_script_depends ویجت اسلایدر لود می‌شود — روی
+        // بقیه صفحات هیچ هزینه‌ای ندارد.
+        wp_register_script(
+            'swiper',
+            ALMASARA_WIDGETS_URL . 'assets/vendor/swiper/swiper-bundle.min.js',
+            [],
+            '11.2.10',
+            true
+        );
+
         $scripts = [
-            'almasara-gallery' => 'gallery-modal.js',
-            'almasara-nav'     => 'anchor-nav.js',
-            'almasara-faq'     => 'faq.js',
-            'almasara-reviews' => 'reviews.js',
+            'almasara-gallery'     => 'gallery-modal.js',
+            'almasara-nav'         => 'anchor-nav.js',
+            'almasara-faq'         => 'faq.js',
+            'almasara-reviews'     => 'reviews.js',
+            'almasara-hero-slider' => 'hero-slider.js',
         ];
 
         foreach ($scripts as $handle => $file) {
             wp_register_script(
                 $handle,
                 ALMASARA_WIDGETS_URL . 'assets/js/' . $file,
-                [],
+                'almasara-hero-slider' === $handle ? ['swiper'] : [],
                 ALMASARA_WIDGETS_VERSION,
                 true
             );
@@ -144,6 +157,13 @@ final class Plugin {
      * ثبت استایل‌ها؛ هر ویجت با get_style_depends فقط در صورت استفاده لودشان می‌کند
      */
     public function register_styles(): void {
+        wp_register_style(
+            'swiper',
+            ALMASARA_WIDGETS_URL . 'assets/vendor/swiper/swiper-bundle.min.css',
+            [],
+            '11.2.10'
+        );
+
         wp_register_style(
             'almasara-widgets',
             ALMASARA_WIDGETS_URL . 'assets/css/almasara-widgets.css',
