@@ -324,49 +324,6 @@ class Product_Section extends Widget_Base {
      * ثبت مجموعه کامل کنترل‌های فلکس‌باکس (جهت / تراز کردن محتوا / تراز
      * موارد / شکاف‌ها / wrap) برای یک سلکتور — همه ریسپانسیو.
      */
-    private function add_full_flex_controls(string $prefix, string $selector, array $defaults = []): void {
-        $this->add_responsive_control($prefix . '_direction', [
-            'label'     => __('جهت', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => $defaults['direction'] ?? 'row',
-            'options'   => $this->layout_direction_options(),
-            'selectors' => [$selector => 'flex-direction: {{VALUE}};'],
-        ]);
-
-        $this->add_responsive_control($prefix . '_justify', [
-            'label'       => __('تراز کردن محتوا', 'almasara-widgets'),
-            'type'        => Controls_Manager::CHOOSE,
-            'default'     => $defaults['justify'] ?? '',
-            'label_block' => true,
-            'options'     => $this->layout_justify_options(),
-            'selectors'   => [$selector => 'justify-content: {{VALUE}};'],
-        ]);
-
-        $this->add_responsive_control($prefix . '_align', [
-            'label'     => __('تراز موارد', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => $defaults['align'] ?? '',
-            'options'   => $this->layout_align_options(),
-            'selectors' => [$selector => 'align-items: {{VALUE}};'],
-        ]);
-
-        $this->add_responsive_control($prefix . '_gaps', [
-            'label'      => __('شکاف‌ها (سطر / ستون)', 'almasara-widgets'),
-            'type'       => Controls_Manager::GAPS,
-            'size_units' => ['px', 'em', '%'],
-            'default'    => ['unit' => 'px'],
-            'selectors'  => [$selector => 'gap: {{ROW}}{{UNIT}} {{COLUMN}}{{UNIT}};'],
-        ]);
-
-        $this->add_responsive_control($prefix . '_wrap', [
-            'label'     => __('شکستن به سطر بعد (wrap)', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => $defaults['wrap'] ?? '',
-            'options'   => $this->layout_wrap_options(),
-            'selectors' => [$selector => 'flex-wrap: {{VALUE}};'],
-        ]);
-    }
-
     /* ---------------- استایل: چیدمان (هدر / ردیف فیلتر / پیل‌ها) ---------------- */
 
     private function register_layout_style_controls(): void {

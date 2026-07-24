@@ -55,6 +55,7 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/hero-slider.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-section.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-price.php';
 
         $widgets_manager->register(new Widgets\Product_Attributes());
         $widgets_manager->register(new Widgets\Product_Description());
@@ -64,6 +65,7 @@ final class Plugin {
         $widgets_manager->register(new Widgets\Product_Reviews());
         $widgets_manager->register(new Widgets\Hero_Slider());
         $widgets_manager->register(new Widgets\Product_Section());
+        $widgets_manager->register(new Widgets\Product_Price());
     }
 
     /**

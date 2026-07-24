@@ -1515,3 +1515,91 @@ body.amw-pg-noscroll {
 	font-size: 13px;
 	text-align: center;
 }
+
+/* ---------- ویجت قیمت محصول ---------- */
+
+.amw-pp {
+	display: block;
+}
+
+.amw-pp__stack {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.amw-pp__old-group {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.amw-pp__now {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 4px;
+	font-size: 22px;
+	font-weight: 700;
+}
+
+.amw-pp__old {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 4px;
+	font-size: 14px;
+	opacity: .6;
+}
+
+.amw-pp__num--free {
+	text-transform: uppercase;
+}
+
+.amw-pp__prefix {
+	font-size: .6em;
+	font-weight: 400;
+	opacity: .8;
+}
+
+.amw-pp__range-sep {
+	font-size: .7em;
+	opacity: .7;
+}
+
+/* پیش‌فرض بج تخفیف (رنگ‌ها از پنل قابل تغییرند) */
+.amw-pp__discount {
+	display: inline-flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 8px;
+	border-radius: 8px;
+	background: #e6123d;
+	color: #fff;
+	font-size: 12px;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.amw-pp__discount-icon {
+	display: inline-flex;
+}
+
+.amw-pp__discount-icon svg {
+	width: var(--amw-pp-disc-icon, .9em);
+	height: var(--amw-pp-disc-icon, .9em);
+	display: block;
+}
+
+/* ---------- پیام ادیتور ---------- */
+
+.amw-pp__notice {
+	padding: 16px;
+	border: 1px dashed #c00;
+	border-radius: 6px;
+	color: #c00;
+	font-size: 13px;
+	text-align: center;
+}
