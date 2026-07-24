@@ -1388,6 +1388,15 @@ body.amw-pg-noscroll {
 	white-space: nowrap;
 }
 
+/* پیل‌های دسته‌بندی + دکمه مشاهده همه، به‌عنوان یک ردیف مدیریت‌شده */
+.amw-ps__filter-row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+}
+
 .amw-ps__pills {
 	display: flex;
 	flex-wrap: wrap;

@@ -62,6 +62,7 @@ class Product_Section extends Widget_Base {
         $this->register_source_content_controls();
         $this->register_slider_content_controls();
 
+        $this->register_layout_style_controls();
         $this->register_header_style_controls();
         $this->register_button_style_controls();
         $this->register_pills_style_controls();
@@ -309,66 +310,116 @@ class Product_Section extends Widget_Base {
 
     /* ---------------- استایل: هدر (عنوان + پیل‌ها + دکمه) ---------------- */
 
-    private function register_header_style_controls(): void {
-        $this->start_controls_section('section_style_header', [
-            'label' => __('هدر', 'almasara-widgets'),
+    /**
+     * ثبت مجموعه کامل کنترل‌های فلکس‌باکس (جهت / تراز کردن محتوا / تراز
+     * موارد / شکاف‌ها / wrap) برای یک سلکتور — همه ریسپانسیو.
+     */
+    private function add_full_flex_controls(string $prefix, string $selector, array $defaults = []): void {
+        $this->add_responsive_control($prefix . '_direction', [
+            'label'     => __('جهت', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'default'   => $defaults['direction'] ?? 'row',
+            'options'   => $this->layout_direction_options(),
+            'selectors' => [$selector => 'flex-direction: {{VALUE}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_justify', [
+            'label'       => __('تراز کردن محتوا', 'almasara-widgets'),
+            'type'        => Controls_Manager::CHOOSE,
+            'default'     => $defaults['justify'] ?? '',
+            'label_block' => true,
+            'options'     => $this->layout_justify_options(),
+            'selectors'   => [$selector => 'justify-content: {{VALUE}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_align', [
+            'label'     => __('تراز موارد', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'default'   => $defaults['align'] ?? '',
+            'options'   => $this->layout_align_options(),
+            'selectors' => [$selector => 'align-items: {{VALUE}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_gaps', [
+            'label'      => __('شکاف‌ها (سطر / ستون)', 'almasara-widgets'),
+            'type'       => Controls_Manager::GAPS,
+            'size_units' => ['px', 'em', '%'],
+            'default'    => ['unit' => 'px'],
+            'selectors'  => [$selector => 'gap: {{ROW}}{{UNIT}} {{COLUMN}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_wrap', [
+            'label'     => __('شکستن به سطر بعد (wrap)', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'default'   => $defaults['wrap'] ?? '',
+            'options'   => $this->layout_wrap_options(),
+            'selectors' => [$selector => 'flex-wrap: {{VALUE}};'],
+        ]);
+    }
+
+    /* ---------------- استایل: چیدمان (هدر / ردیف فیلتر / پیل‌ها) ---------------- */
+
+    private function register_layout_style_controls(): void {
+        $this->start_controls_section('section_style_layout', [
+            'label' => __('چیدمان', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_STYLE,
         ]);
 
-        $this->add_responsive_control('header_direction', [
-            'label'                => __('جهت چیدمان', 'almasara-widgets'),
-            'type'                 => Controls_Manager::CHOOSE,
-            'default'              => 'row',
-            'options'              => $this->layout_direction_options(),
-            'selectors'            => ['{{WRAPPER}} .amw-ps__header' => 'flex-direction: {{VALUE}};'],
-        ]);
+        $this->start_controls_tabs('layout_tabs');
 
-        $this->add_responsive_control('header_justify', [
-            'label'     => __('توزیع', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => 'space-between',
-            'options'   => $this->layout_justify_options(),
-            'selectors' => ['{{WRAPPER}} .amw-ps__header' => 'justify-content: {{VALUE}};'],
+        $this->start_controls_tab('layout_tab_header', ['label' => __('هدر', 'almasara-widgets')]);
+        $this->add_full_flex_controls('header', '{{WRAPPER}} .amw-ps__header', [
+            'direction' => 'row',
+            'justify'   => 'space-between',
+            'align'     => 'center',
+            'wrap'      => 'wrap',
         ]);
+        $this->end_controls_tab();
 
-        $this->add_responsive_control('header_align', [
-            'label'     => __('تراز', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => 'center',
-            'options'   => $this->layout_align_options(),
-            'selectors' => ['{{WRAPPER}} .amw-ps__header' => 'align-items: {{VALUE}};'],
+        $this->start_controls_tab('layout_tab_filter', ['label' => __('ردیف فیلتر', 'almasara-widgets')]);
+        $this->add_control('filter_row_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('پیل‌های دسته‌بندی و دکمه «مشاهده همه» با هم در یک ردیف‌اند؛ با «جهت = افقی معکوس» می‌توانید جای دکمه و پیل‌ها را عوض کنید.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
         ]);
+        $this->add_full_flex_controls('filter_row', '{{WRAPPER}} .amw-ps__filter-row', [
+            'direction' => 'row',
+            'justify'   => 'flex-start',
+            'align'     => 'center',
+            'wrap'      => 'wrap',
+        ]);
+        $this->end_controls_tab();
 
-        $this->add_responsive_control('header_wrap', [
-            'label'     => __('شکستن به چند خط', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'default'   => 'wrap',
-            'options'   => $this->layout_wrap_options(),
-            'selectors' => ['{{WRAPPER}} .amw-ps__header' => 'flex-wrap: {{VALUE}};'],
+        $this->start_controls_tab('layout_tab_pills', ['label' => __('پیل‌ها', 'almasara-widgets')]);
+        $this->add_full_flex_controls('pills', '{{WRAPPER}} .amw-ps__pills', [
+            'direction' => 'row',
+            'justify'   => 'flex-start',
+            'align'     => 'center',
+            'wrap'      => 'wrap',
         ]);
+        $this->end_controls_tab();
 
-        $this->add_responsive_control('header_gap', [
-            'label'      => __('فاصله بین اجزا', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px'],
-            'range'      => ['px' => ['min' => 0, 'max' => 60]],
-            'default'    => ['size' => 16, 'unit' => 'px'],
-            'selectors'  => ['{{WRAPPER}} .amw-ps__header' => 'gap: {{SIZE}}{{UNIT}};'],
-        ]);
+        $this->end_controls_tabs();
 
         $this->add_responsive_control('header_margin_bottom', [
-            'label'      => __('فاصله تا اسلایدر', 'almasara-widgets'),
+            'label'      => __('فاصله هدر تا اسلایدر', 'almasara-widgets'),
             'type'       => Controls_Manager::SLIDER,
             'size_units' => ['px'],
             'range'      => ['px' => ['min' => 0, 'max' => 80]],
             'default'    => ['size' => 24, 'unit' => 'px'],
+            'separator'  => 'before',
             'selectors'  => ['{{WRAPPER}} .amw-ps__header' => 'margin-bottom: {{SIZE}}{{UNIT}};'],
         ]);
 
-        $this->add_control('heading_title_style', [
-            'label'     => __('عنوان', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
+        $this->end_controls_section();
+    }
+
+    /* ---------------- استایل: عنوان ---------------- */
+
+    private function register_header_style_controls(): void {
+        $this->start_controls_section('section_style_title', [
+            'label' => __('عنوان', 'almasara-widgets'),
+            'tab'   => Controls_Manager::TAB_STYLE,
         ]);
 
         $this->add_group_control(Group_Control_Typography::get_type(), [
@@ -491,15 +542,6 @@ class Product_Section extends Widget_Base {
             'range'      => ['px' => ['min' => 0, 'max' => 40]],
             'default'    => ['size' => 20, 'unit' => 'px'],
             'selectors'  => ['{{WRAPPER}} .amw-ps__pill' => 'border-radius: {{SIZE}}{{UNIT}};'],
-        ]);
-
-        $this->add_responsive_control('pills_gap', [
-            'label'      => __('فاصله بین پیل‌ها', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px'],
-            'range'      => ['px' => ['min' => 0, 'max' => 30]],
-            'default'    => ['size' => 8, 'unit' => 'px'],
-            'selectors'  => ['{{WRAPPER}} .amw-ps__pills' => 'gap: {{SIZE}}{{UNIT}};'],
         ]);
 
         $this->add_control('heading_pill_normal', [
@@ -871,6 +913,10 @@ class Product_Section extends Widget_Base {
             echo '<h2 class="amw-ps__title">' . esc_html($settings['title']) . '</h2>';
         }
 
+        // پیل‌های دسته‌بندی + دکمه مشاهده همه با هم در یک ردیف مدیریت‌شده
+        // (تب «ردیف فیلتر» در استایل → چیدمان)
+        echo '<div class="amw-ps__filter-row">';
+
         echo '<div class="amw-ps__pills" role="tablist">';
         printf(
             '<button type="button" class="amw-ps__pill is-active" data-term="0" data-link="%s" role="tab" aria-selected="true">%s</button>',
@@ -896,7 +942,7 @@ class Product_Section extends Widget_Base {
                 esc_html($label)
             );
         }
-        echo '</div>';
+        echo '</div>'; // .amw-ps__pills
 
         if ('yes' === $settings['show_view_all']) {
             printf(
@@ -905,6 +951,8 @@ class Product_Section extends Widget_Base {
                 esc_html($settings['view_all_text'])
             );
         }
+
+        echo '</div>'; // .amw-ps__filter-row
 
         echo '</div>'; // .amw-ps__header
     }
