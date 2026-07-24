@@ -1404,7 +1404,8 @@ body.amw-pg-noscroll {
 	gap: 8px;
 }
 
-.amw-ps__pill {
+/* پیشوند button به همان دلیلِ «button.amw-ps__btn» — پیل‌ها هم <button>اند */
+button.amw-ps__pill {
 	display: inline-flex;
 	align-items: center;
 	padding: 8px 18px;
@@ -1413,13 +1414,15 @@ body.amw-pg-noscroll {
 	background: #f2f4f8;
 	color: #4b5259;
 	font: inherit;
+	-webkit-appearance: none;
+	appearance: none;
 	cursor: pointer;
 	white-space: nowrap;
 	transition: background-color .2s ease, color .2s ease, border-color .2s ease;
 }
 
 /* پیش‌فرض حالت فعال (رنگ‌ها از پنل قابل تغییرند) */
-.amw-ps__pill.is-active {
+button.amw-ps__pill.is-active {
 	background: #16265c;
 	color: #fff;
 }
@@ -1470,7 +1473,16 @@ body.amw-pg-noscroll {
 
 /* ---------- دکمه‌های قبلی/بعدی ---------- */
 
-.amw-ps__btn {
+/*
+ * پیشوند «button» عمدی است و دقیقاً یک پله وزن اضافه می‌کند (۰,۱,۱):
+ * از «[type=button], button» قالب‌ها (۰,۱,۰) بالاتر می‌رود، ولی زیر
+ * سلکتور کنترل‌های المنتور «{{WRAPPER}} .amw-ps__btn» (۰,۲,۰) می‌ماند.
+ * اگر به‌جایش دو کلاسه می‌نوشتیم، با المنتور مساوی می‌شد و برنده به ترتیب
+ * بارگذاری فایل‌ها گره می‌خورد — یعنی تنظیمات پنل گاهی بی‌اثر می‌شد.
+ * padding صفر شده چون پدینگ پیش‌فرض قالب، فضای داخلی دکمهٔ ۴۰ پیکسلی را
+ * می‌بلعید و آیکون را نامرئی می‌کرد.
+ */
+button.amw-ps__btn {
 	--amw-ps-nav-size: 18px;
 	position: absolute;
 	top: 50%;
@@ -1481,28 +1493,35 @@ body.amw-pg-noscroll {
 	justify-content: center;
 	width: 40px;
 	height: 40px;
+	padding: 0;
 	border: 0;
 	border-radius: 50%;
 	background: #fff;
 	color: #16265c;
+	font: inherit;
+	line-height: 0;
+	-webkit-appearance: none;
+	appearance: none;
 	cursor: pointer;
 	z-index: 10;
 	transition: background-color .2s ease, color .2s ease;
 }
 
-.amw-ps__btn--next {
+button.amw-ps__btn--next {
 	left: auto;
 	right: 0;
 }
 
-.amw-ps__btn svg,
-.amw-ps__btn img {
+button.amw-ps__btn svg,
+button.amw-ps__btn img {
 	width: var(--amw-ps-nav-size);
 	height: var(--amw-ps-nav-size);
+	/* اجازه ندهیم به‌عنوان آیتم فلکس فشرده شود */
+	flex: 0 0 auto;
 	display: block;
 }
 
-.amw-ps__btn.swiper-button-disabled {
+button.amw-ps__btn.swiper-button-disabled {
 	/* شفافیت از تب «غیرفعال» در استایل کنترل می‌شود (پیش‌فرض ۰.۳۵) */
 	pointer-events: none;
 }

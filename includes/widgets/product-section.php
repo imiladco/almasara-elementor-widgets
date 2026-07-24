@@ -267,11 +267,25 @@ class Product_Section extends Widget_Base {
             'step'           => 0.1,
         ]);
 
+        $this->add_responsive_control('slide_width', [
+            'label'       => __('عرض دستی کارت', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px', '%', 'vw'],
+            'range'       => [
+                'px' => ['min' => 80, 'max' => 600],
+                '%'  => ['min' => 10, 'max' => 100],
+                'vw' => ['min' => 10, 'max' => 100],
+            ],
+            'description' => __('خالی = عرض از «تعداد کارت هم‌زمان» حساب می‌شود. اگر مقدار بگذارید، در همان دستگاه ملاکْ همین عرض است و تعداد کارت هم‌زمان نادیده گرفته می‌شود؛ برای موبایل که معمولاً عرض دقیق می‌خواهید مفید است. درصد نسبت به عرض خودِ اسلایدر حساب می‌شود.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-ps__slider .swiper-slide' => 'width: {{SIZE}}{{UNIT}};'],
+        ]);
+
         $this->add_responsive_control('space_between', [
-            'label'   => __('فاصله بین کارت‌ها (px)', 'almasara-widgets'),
-            'type'    => Controls_Manager::NUMBER,
-            'default' => 20,
-            'min'     => 0,
+            'label'       => __('فاصله بین کارت‌ها (px)', 'almasara-widgets'),
+            'type'        => Controls_Manager::NUMBER,
+            'default'     => 20,
+            'min'         => 0,
+            'description' => __('برای هر دستگاه جداگانه قابل تنظیم است؛ اگر برای تبلت/موبایل خالی بماند، مقدار دستگاه بزرگ‌تر به ارث می‌رسد.', 'almasara-widgets'),
         ]);
 
         $this->add_responsive_control('speed', [
@@ -488,6 +502,13 @@ class Product_Section extends Widget_Base {
             'label'     => __('دکمه مشاهده همه', 'almasara-widgets'),
             'tab'       => Controls_Manager::TAB_STYLE,
             'condition' => ['show_view_all' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('viewall_hide', [
+            'label'       => __('مخفی کردن دکمه', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('برای پنهان‌کردن فقط در موبایل، همین کنترل را در حالت موبایل روشن کنید تا دسکتاپ دست‌نخورده بماند.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-ps__viewall' => 'display: none;'],
         ]);
 
         $this->add_responsive_control('btn_width', [
@@ -951,19 +972,47 @@ class Product_Section extends Widget_Base {
 
         // المنتور دسکتاپ‌محور (پایه=دسکتاپ) → breakpoints موبایل‌محور Swiper
         // (پایه=کوچک‌ترین)، عیناً مثل ویجت اسلایدر هیرو.
-        $responsive = static function (array $settings, string $key, $cast) {
+        //
+        // نکتهٔ مهم: المنتور مقدارِ تنظیم‌نشدهٔ یک کنترل ریسپانسیو را «رشتهٔ
+        // خالی» ذخیره می‌کند، نه null. پس ?? هیچ‌وقت عمل نمی‌کرد و مثلاً
+        // (int) '' برابر صفر می‌شد — یعنی فاصلهٔ کارت‌ها و سرعت گذار روی
+        // تبلت و موبایل به‌زور صفر می‌شدند و مقدار دسکتاپ دور ریخته می‌شد.
+        // ترتیب ارث‌بری هم مثل خودِ CSS المنتور است: موبایل ← تبلت ← دسکتاپ.
+        $set = static function ($value) {
+            if (is_array($value)) {
+                return (isset($value['size']) && '' !== $value['size'] && null !== $value['size']) ? $value : null;
+            }
+            return ('' !== $value && null !== $value) ? $value : null;
+        };
+
+        $responsive = static function (array $settings, string $key, callable $cast) use ($set) {
+            $desktop = $set($settings[$key] ?? null);
+            $tablet  = $set($settings[$key . '_tablet'] ?? null) ?? $desktop;
+            $mobile  = $set($settings[$key . '_mobile'] ?? null) ?? $tablet;
+
             return [
-                'mobile'  => $cast($settings[$key . '_mobile'] ?? $settings[$key]),
-                'tablet'  => $cast($settings[$key . '_tablet'] ?? $settings[$key]),
-                'desktop' => $cast($settings[$key]),
+                'desktop' => $cast($desktop),
+                'tablet'  => $cast($tablet),
+                'mobile'  => $cast($mobile),
             ];
         };
         $to_int   = static fn($v) => (int) $v;
         $to_float = static fn($v) => (float) $v;
+        $is_set   = static fn($v) => null !== $v;
 
         $speed = $responsive($settings, 'speed', $to_int);
         $spv   = $responsive($settings, 'slides_per_view', $to_float);
         $space = $responsive($settings, 'space_between', $to_int);
+
+        // عرض دستی کارت: هرجا مقدار دارد، خودِ CSS عرض اسلاید را تعیین می‌کند
+        // و Swiper باید در همان بریک‌پوینت روی 'auto' برود تا عرض را بازنویسی
+        // نکند؛ وگرنه «تعداد کارت هم‌زمان» ملاک می‌ماند.
+        $width = $responsive($settings, 'slide_width', $is_set);
+        foreach (['desktop', 'tablet', 'mobile'] as $device) {
+            if ($width[$device]) {
+                $spv[$device] = 'auto';
+            }
+        }
 
         $cfg = [
             'restUrl'              => esc_url_raw(rest_url('almasara/v1/product-section')),
