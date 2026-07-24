@@ -677,6 +677,17 @@ class Product_Section extends Widget_Base {
             'selectors'   => ['{{WRAPPER}} .amw-ps__card' => 'overflow: hidden;'],
         ]);
 
+        $this->add_responsive_control('card_shadow_room', [
+            'label'       => __('فضای تنفس سایه', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px'],
+            'range'       => ['px' => ['min' => 0, 'max' => 60]],
+            'default'     => ['size' => 24, 'unit' => 'px'],
+            'separator'   => 'before',
+            'description' => __('اسلایدر ناچار است محتوای بیرون کادرش را ببرد، و همین سایهٔ کارت‌ها را روی لبه‌های بالا و چپ و راست قطع می‌کند. این مقدار مرز برش را به همان اندازه به بیرون هل می‌دهد، بدون آنکه جای کارت‌ها تکان بخورد. کمی بیشتر از بزرگ‌ترین شعاع سایه‌تان بگذارید. اگر از «فاصله بین کارت‌ها» بزرگ‌ترش کنید، لبهٔ کارت بعدی از گوشه بیرون می‌زند. ۰ = خاموش.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-ps__slider' => '--amw-ps-shadow-room: {{SIZE}}{{UNIT}};'],
+        ]);
+
         $this->end_controls_section();
     }
 
@@ -966,11 +977,6 @@ class Product_Section extends Widget_Base {
         echo $result['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- رندرشده از قالب Listing، محتوایش مسئولیت خودِ جت‌انجین است
 
         echo '</div>'; // .swiper-wrapper
-
-        if ('yes' === $settings['show_pagination']) {
-            echo '<div class="swiper-pagination amw-ps__pagination"></div>';
-        }
-
         echo '</div>'; // .swiper
 
         if ('yes' === $settings['show_navigation']) {
@@ -983,6 +989,14 @@ class Product_Section extends Widget_Base {
         }
 
         echo '</div>'; // .amw-ps__slider-wrap
+
+        // پیجینیشن عمداً بیرون از «slider-wrap» است: هم از باکس برش سوایپر
+        // خارج می‌ماند، هم ارتفاعش وارد محاسبهٔ «top:50%» دکمه‌های ناوبری
+        // نمی‌شود تا دکمه‌ها همیشه دقیقاً وسط کارت‌ها بایستند.
+        if ('yes' === $settings['show_pagination']) {
+            echo '<div class="swiper-pagination amw-ps__pagination"></div>';
+        }
+
         echo '</div>'; // .amw-ps
     }
 
@@ -1005,20 +1019,20 @@ class Product_Section extends Widget_Base {
             esc_html($settings['all_label'])
         );
 
-        foreach ((array) ($settings['categories'] ?? []) as $row) {
+        // دسته‌هایی که با فیلترهای فعال هیچ محصولی ندارند یکجا کنار گذاشته
+        // می‌شوند (کلیک روی پیل خالی تجربه بدی است). یکجا و کش‌شده، تا مثل
+        // قبل به‌ازای هر پیل یک کوئری جدا زده نشود.
+        $rows     = (array) ($settings['categories'] ?? []);
+        $wanted   = array_map(static fn($row) => absint($row['category'] ?? 0), $rows);
+        $non_empty = \Almasara_Widgets\Product_Section_Ajax::filter_non_empty_categories($wanted, $has_price, $in_stock, $has_image);
+
+        foreach ($rows as $row) {
             $term_id = absint($row['category'] ?? 0);
-            if (!$term_id) {
+            if (!$term_id || !in_array($term_id, $non_empty, true)) {
                 continue;
             }
             $term = get_term($term_id, 'product_cat');
             if (!$term || is_wp_error($term)) {
-                continue;
-            }
-            // اگر با همین فیلترهای فعال هیچ محصولی در این دسته نماند، پیلش
-            // اصلاً نمایش داده نشود (کلیک روی پیل خالی تجربه بدی است).
-            if (($has_price || $in_stock || $has_image)
-                && !\Almasara_Widgets\Product_Section_Ajax::category_has_products($term_id, $has_price, $in_stock, $has_image)
-            ) {
                 continue;
             }
             $label = '' !== trim((string) ($row['label'] ?? '')) ? $row['label'] : $term->name;

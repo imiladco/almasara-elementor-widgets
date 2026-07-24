@@ -110,27 +110,29 @@ final class Product_Section_Ajax {
             'ignore_sticky_posts' => true,
         ];
 
-        if ('popularity' === $orderby) {
+        $query_args = self::apply_filters_to_query_args($query_args, $category, $in_stock, $has_image);
+
+        $lookup = self::build_lookup_clauses($orderby, $order, $has_price);
+
+        if ($lookup) {
+            if (self::orders_by_lookup($orderby)) {
+                // orderby را خودمان مستقیم در clauses می‌نویسیم
+                $query_args['orderby'] = 'none';
+            }
+            add_filter('posts_clauses', $lookup);
+        } elseif ('popularity' === $orderby) {
+            // fallback وقتی جدول جست‌وجوی ووکامرس در دسترس نیست
             $query_args['meta_key'] = 'total_sales'; // phpcs:ignore WordPress.DB.SlowDBQuery
         } elseif ('price' === $orderby) {
             $query_args['orderby']  = 'meta_value_num';
             $query_args['meta_key'] = '_price'; // phpcs:ignore WordPress.DB.SlowDBQuery
         }
 
-        if ($category > 0) {
-            $query_args['tax_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery
-                'taxonomy' => 'product_cat',
-                'field'    => 'term_id',
-                'terms'    => [$category],
-            ]];
-        }
-
-        $meta_query = self::build_filters_meta_query($has_price, $in_stock, $has_image);
-        if ($meta_query) {
-            $query_args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery
-        }
-
         $query = new \WP_Query($query_args);
+
+        if ($lookup) {
+            remove_filter('posts_clauses', $lookup);
+        }
 
         $html = '';
         foreach ($query->posts as $post) {
@@ -150,82 +152,175 @@ final class Product_Section_Ajax {
         return $result;
     }
 
-    /**
-     * meta_query سه فیلتر محتوا: قیمت / موجودی / عکس شاخص — بین کوئری اصلی
-     * و بررسی «آیا این دسته محصولی دارد» (برای مخفی‌کردن پیل‌های خالی)
-     * مشترک است تا هر دو همیشه دقیقاً یک منطق فیلتر داشته باشند.
-     */
-    private static function build_filters_meta_query(bool $has_price, bool $in_stock, bool $has_image): array {
-        $clauses = [];
+    /** آیا مرتب‌سازی خواسته‌شده از ستون‌های جدول جست‌وجو خوانده می‌شود؟ */
+    private static function orders_by_lookup(string $orderby): bool {
+        return in_array($orderby, ['price', 'popularity'], true);
+    }
 
-        if ($has_price) {
-            // محصولاتی که قیمتی برایشان ثبت نشده، متای _price را اصلاً
-            // ندارند یا آن را خالی دارند؛ NOT EXISTS محصولات بدون قیمت
-            // (متغیرهای بدون هیچ گزینه‌قیمت‌گذاری‌شده) را هم درست حذف می‌کند.
-            $clauses[] = [
-                'key'     => '_price',
-                'value'   => '',
-                'compare' => '!=',
+    /**
+     * فیلتر posts_clauses برای استفاده از جدول wc_product_meta_lookup ووکامرس.
+     *
+     * این جدول به‌ازای هر محصول دقیقاً یک ردیف دارد و ستون‌هایش ایندکس‌شده‌اند،
+     * پس دو مشکل را هم‌زمان حل می‌کند:
+     *   • تکراری‌شدن کارت‌ها: متای _price برای محصول متغیر چند ردیف دارد، و
+     *     هر JOIN روی آن (چه برای مرتب‌سازی، چه برای فیلتر «دارای قیمت»)
+     *     همان محصول را چند بار برمی‌گرداند.
+     *   • کندی: مرتب‌سازی با meta_value_num روی جدول postmeta به‌مراتب از
+     *     خواندن یک ستون ایندکس‌شده گران‌تر است.
+     * min_price فقط برای محصول بدون قیمت NULL است؛ محصول رایگان مقدار ۰
+     * دارد، پس فیلتر «دارای قیمت» رایگان‌ها را حذف نمی‌کند.
+     *
+     * @return callable|null null یعنی این کوئری به جدول نیازی ندارد، یا جدول
+     *                      در دسترس نیست. حالت دوم عملاً رخ نمی‌دهد (ووکامرس
+     *                      از ۳.۶ همیشه آن را می‌سازد) و اگر رخ دهد مرتب‌سازی
+     *                      به مسیر متایی برمی‌گردد و فیلتر قیمت اعمال نمی‌شود.
+     */
+    private static function build_lookup_clauses(string $orderby, string $order, bool $has_price): ?callable {
+        global $wpdb;
+
+        if (empty($wpdb->wc_product_meta_lookup)) {
+            return null;
+        }
+
+        $order_column = '';
+        if ('price' === $orderby) {
+            $order_column = 'min_price';
+        } elseif ('popularity' === $orderby) {
+            $order_column = 'total_sales';
+        }
+
+        if ('' === $order_column && !$has_price) {
+            return null;
+        }
+
+        // هر دو مقدار از مجموعه‌ای ثابت و داخلی می‌آیند، نه از ورودی کاربر
+        return static function (array $clauses) use ($wpdb, $order_column, $order, $has_price): array {
+            $clauses['join'] .= " INNER JOIN {$wpdb->wc_product_meta_lookup} amw_pml ON {$wpdb->posts}.ID = amw_pml.product_id ";
+
+            if ($has_price) {
+                $clauses['where'] .= ' AND amw_pml.min_price IS NOT NULL ';
+            }
+
+            if ('' !== $order_column) {
+                $clauses['orderby'] = "amw_pml.{$order_column} {$order}, {$wpdb->posts}.ID DESC";
+            }
+
+            return $clauses;
+        };
+    }
+
+    /**
+     * افزودن دسته‌بندی و فیلترهای «موجود» و «دارای عکس» به آرگومان‌های کوئری.
+     *
+     * هر دو فیلتر عمداً با شرط‌هایی بیان شده‌اند که ردیف تکراری تولید نکنند:
+     *   • موجودی از تکسونومی product_visibility خوانده می‌شود (نه متای
+     *     _stock_status) — هم خودِ ووکامرس در حلقهٔ فروشگاه از همین استفاده
+     *     می‌کند، هم WP روی tax_query خودکار DISTINCT می‌زند. محصولات بدون
+     *     مدیریت موجودی هم ترم outofstock نمی‌گیرند، پس حذف نمی‌شوند.
+     *   • _thumbnail_id تک‌مقداری است، پس JOIN آن هیچ‌وقت تکراری نمی‌سازد.
+     * فیلتر «دارای قیمت» اینجا نیست چون به جدول جست‌وجو نیاز دارد؛
+     * build_lookup_clauses() آن را اعمال می‌کند.
+     */
+    private static function apply_filters_to_query_args(array $query_args, int $category, bool $in_stock, bool $has_image): array {
+        $tax_query = [];
+
+        if ($category > 0) {
+            $tax_query[] = [
+                'taxonomy' => 'product_cat',
+                'field'    => 'term_id',
+                'terms'    => [$category],
             ];
         }
 
         if ($in_stock) {
-            // بر پایه _stock_status (نه _stock) تا محصولات بدون موجودی
-            // مدیریت‌شده (تعداد نامحدود) به اشتباه حذف نشوند؛ ووکامرس این
-            // متا را برای همه محصولات — مدیریت‌شده یا نه — ست می‌کند.
-            $clauses[] = [
-                'key'     => '_stock_status',
-                'value'   => 'outofstock',
-                'compare' => '!=',
+            $tax_query[] = [
+                'taxonomy' => 'product_visibility',
+                'field'    => 'name',
+                'terms'    => ['outofstock'],
+                'operator' => 'NOT IN',
             ];
+        }
+
+        if (count($tax_query) > 1) {
+            $tax_query = array_merge(['relation' => 'AND'], $tax_query);
+        }
+
+        if ($tax_query) {
+            $query_args['tax_query'] = $tax_query; // phpcs:ignore WordPress.DB.SlowDBQuery
         }
 
         if ($has_image) {
-            $clauses[] = [
+            $query_args['meta_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery
                 'key'     => '_thumbnail_id',
                 'compare' => 'EXISTS',
-            ];
-        }
-
-        if (!$clauses) {
-            return [];
-        }
-
-        return array_merge(['relation' => 'AND'], $clauses);
-    }
-
-    /**
-     * آیا این دسته‌بندی، با همین فیلترهای محتوای فعال، حداقل یک محصول دارد؟
-     * برای مخفی‌کردن پیل دسته‌بندی‌های خالی در هدر ویجت استفاده می‌شود.
-     */
-    public static function category_has_products(int $term_id, bool $has_price, bool $in_stock, bool $has_image): bool {
-        $query_args = [
-            'post_type'              => 'product',
-            'post_status'            => 'publish',
-            'posts_per_page'         => 1,
-            'fields'                 => 'ids',
-            'no_found_rows'          => true,
-            'ignore_sticky_posts'    => true,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
-        ];
-
-        if ($term_id > 0) {
-            $query_args['tax_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery
-                'taxonomy' => 'product_cat',
-                'field'    => 'term_id',
-                'terms'    => [$term_id],
             ]];
         }
 
-        $meta_query = self::build_filters_meta_query($has_price, $in_stock, $has_image);
-        if ($meta_query) {
-            $query_args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery
+        return $query_args;
+    }
+
+    /**
+     * از میان شناسه‌های دسته‌بندی داده‌شده، آن‌هایی را برمی‌گرداند که با
+     * فیلترهای فعال دست‌کم یک محصول دارند (برای مخفی‌کردن پیل‌های خالی).
+     *
+     * نتیجه یکجا در یک ترنزینت کش می‌شود: بدون آن، هر بارگذاری صفحه به‌ازای
+     * هر پیل یک کوئری جدا می‌زد. کلید کش به همان نسخهٔ سراسری گره خورده که
+     * با ذخیرهٔ محصول یا تغییر موجودی بالا می‌رود، پس کهنه نمی‌ماند.
+     *
+     * دقیقاً همان منطق فیلترِ کوئری اصلی را به کار می‌گیرد تا پیلی که نمایش
+     * داده می‌شود، حتماً بعد از کلیک هم کارت داشته باشد.
+     *
+     * @param int[] $term_ids
+     * @return int[]
+     */
+    public static function filter_non_empty_categories(array $term_ids, bool $has_price, bool $in_stock, bool $has_image): array {
+        $term_ids = array_values(array_unique(array_filter(array_map('absint', $term_ids))));
+
+        if (!$term_ids || (!$has_price && !$in_stock && !$has_image)) {
+            return $term_ids;
         }
 
-        $query = new \WP_Query($query_args);
+        $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
+        $cache_key = 'amw_ps_cats_' . md5(wp_json_encode([$ver, $term_ids, $has_price, $in_stock, $has_image]));
+        $cached    = get_transient($cache_key);
+        if (is_array($cached)) {
+            return $cached;
+        }
 
-        return $query->post_count > 0;
+        $visible = [];
+        foreach ($term_ids as $term_id) {
+            $query_args = [
+                'post_type'              => 'product',
+                'post_status'            => 'publish',
+                'posts_per_page'         => 1,
+                'fields'                 => 'ids',
+                'no_found_rows'          => true,
+                'ignore_sticky_posts'    => true,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+            ];
+
+            $query_args = self::apply_filters_to_query_args($query_args, $term_id, $in_stock, $has_image);
+
+            $lookup = self::build_lookup_clauses('date', 'DESC', $has_price);
+            if ($lookup) {
+                add_filter('posts_clauses', $lookup);
+            }
+
+            $query = new \WP_Query($query_args);
+
+            if ($lookup) {
+                remove_filter('posts_clauses', $lookup);
+            }
+
+            if ($query->post_count > 0) {
+                $visible[] = $term_id;
+            }
+        }
+
+        set_transient($cache_key, $visible, HOUR_IN_SECONDS);
+
+        return $visible;
     }
 
     /**

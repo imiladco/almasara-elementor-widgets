@@ -1432,19 +1432,30 @@ body.amw-pg-noscroll {
 	transition: background-color .2s ease, color .2s ease, border-color .2s ease;
 }
 
+/*
+ * فقط اسلایدر و دکمه‌های ناوبری داخل این باکس‌اند (پیجینیشن بیرون است) تا
+ * «top: 50%» دکمه‌ها دقیقاً وسط کارت‌ها بیفتد، نه وسط کارت‌ها+پیجینیشن.
+ * flow-root هم جلوی نشتِ مارجین منفی اسلایدر به بیرون را می‌گیرد.
+ */
 .amw-ps__slider-wrap {
 	position: relative;
-	/* جلوگیری از collapse مارجین منفی زیر با فاصله بالای ویجت — تا مارجین
-	   منفی «amw-ps__slider» فقط داخل همین باکس اثر بگذارد، نه روی هدر بالا */
 	display: flow-root;
 }
 
+/*
+ * سوایپر ناچاراً overflow را می‌برد، پس سایهٔ کارت‌ها روی لبه‌ها قطع می‌شد.
+ * راه‌حل: پدینگ متقارن (مرز برش را به بیرون هل می‌دهد) + مارجین منفی دقیقاً
+ * به همان اندازه (اثر پدینگ روی چیدمان را کامل خنثی می‌کند).
+ * چون هر دو در چهار جهت برابرند، مکان و اندازهٔ کارت‌ها هیچ تغییری نمی‌کند —
+ * برخلاف حالت نامتقارن که فاصلهٔ هدر تا اسلایدر را به هم می‌ریخت.
+ * width عمداً auto است: با border-box، «width:100%» پدینگ را از عرض محتوا
+ * کم می‌کرد و کارت‌ها را باریک می‌کرد.
+ */
 .amw-ps__slider {
-	width: 100%;
-	/* فضای اضافه تا سایه هاور کارت‌ها (بالا/کناره‌ها) با overflow:hidden
-	   ذاتی سوایپر بریده نشود؛ مارجین منفی محل واقعی چیدمان را خنثی می‌کند */
-	margin: -28px -16px 0;
-	padding: 28px 16px 0;
+	--amw-ps-shadow-room: 0px;
+	width: auto;
+	margin: calc(-1 * var(--amw-ps-shadow-room));
+	padding: var(--amw-ps-shadow-room);
 }
 
 .amw-ps.is-loading .amw-ps__slider {
@@ -1462,9 +1473,7 @@ body.amw-pg-noscroll {
 .amw-ps__btn {
 	--amw-ps-nav-size: 18px;
 	position: absolute;
-	/* +۱۴px = نصف پدینگ بالای amw-ps__slider (۲۸px)، تا وسط دکمه با وسط
-	   واقعی کارت‌ها بماند نه وسط باکس بزرگ‌شده برای جای سایه */
-	top: calc(50% + 14px);
+	top: 50%;
 	transform: translateY(-50%);
 	left: 0;
 	display: inline-flex;
@@ -1500,18 +1509,21 @@ body.amw-pg-noscroll {
 
 /* ---------- پیجینیشن ---------- */
 
-.amw-ps__pagination.swiper-pagination {
-	position: static !important;
-	display: flex !important;
+/*
+ * پیجینیشن بیرون از «.swiper» رندر می‌شود، پس قواعد موقعیت‌دهی مطلقِ سوایپر
+ * (که فرزندِ «.swiper-horizontal» را هدف می‌گیرند) اصلاً روی آن نمی‌افتند و
+ * دیگر به هیچ !important نیاز نیست. فاصله و شفافیت گلوله‌ها هم به‌جای
+ * جنگیدن با مارجین، از طریق متغیرهای رسمی خودِ سوایپر صفر می‌شوند.
+ */
+.amw-ps .amw-ps__pagination.swiper-pagination {
+	--swiper-pagination-bullet-horizontal-gap: 0px;
+	--swiper-pagination-bullet-inactive-opacity: 1;
+	position: static;
+	display: flex;
 	justify-content: center;
 	gap: 6px;
 	margin-top: 16px;
-	width: auto !important;
-}
-
-.amw-ps__pagination .swiper-pagination-bullet {
-	margin: 0 !important;
-	opacity: 1 !important;
+	width: auto;
 }
 
 /* ---------- پیام ادیتور ---------- */
