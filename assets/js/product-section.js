@@ -86,7 +86,8 @@
 			category: termId,
 			count: cfg.count,
 			orderby: cfg.orderby,
-			order: cfg.order
+			order: cfg.order,
+			cache: cfg.cache || 0
 		});
 
 		setLoading(root, true);

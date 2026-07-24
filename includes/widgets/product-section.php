@@ -75,7 +75,7 @@ class Product_Section extends Widget_Base {
 
     private function register_header_content_controls(): void {
         $this->start_controls_section('section_header', [
-            'label' => __('عنوان', 'almasara-widgets'),
+            'label' => __('عنوان و دکمه', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
@@ -194,6 +194,16 @@ class Product_Section extends Widget_Base {
                 'ASC'  => __('صعودی', 'almasara-widgets'),
             ],
             'condition' => ['orderby!' => 'rand'],
+        ]);
+
+        $this->add_control('cache_minutes', [
+            'label'       => __('کش موقت خروجی (دقیقه)', 'almasara-widgets'),
+            'type'        => Controls_Manager::NUMBER,
+            'default'     => 30,
+            'min'         => 0,
+            'max'         => 1440,
+            'separator'   => 'before',
+            'description' => __('رندر کارت‌ها سنگین‌ترین بخش این بخش است؛ کش این هزینه را فقط یک‌بار در هر بازه پرداخت می‌کند. با هر ویرایش محصول یا تغییر موجودی، کش خودکار باطل می‌شود. ۰ = خاموش. مرتب‌سازی تصادفی هرگز کش نمی‌شود.', 'almasara-widgets'),
         ]);
 
         $this->end_controls_section();
@@ -382,6 +392,23 @@ class Product_Section extends Widget_Base {
             'raw'             => __('پیل‌های دسته‌بندی و دکمه «مشاهده همه» با هم در یک ردیف‌اند؛ با «جهت = افقی معکوس» می‌توانید جای دکمه و پیل‌ها را عوض کنید.', 'almasara-widgets'),
             'content_classes' => 'elementor-descriptor',
         ]);
+        $this->add_responsive_control('filter_row_width', [
+            'label'                => __('عرض ردیف فیلتر', 'almasara-widgets'),
+            'type'                 => Controls_Manager::CHOOSE,
+            'default'              => 'auto',
+            'options'              => [
+                'auto' => ['title' => __('خودکار (اندازه محتوا)', 'almasara-widgets'), 'icon' => 'eicon-h-align-left'],
+                'grow' => ['title' => __('پرکردن فضای باقی‌مانده', 'almasara-widgets'), 'icon' => 'eicon-grow'],
+                'full' => ['title' => __('تمام عرض (خط جدا)', 'almasara-widgets'), 'icon' => 'eicon-h-align-stretch'],
+            ],
+            'selectors_dictionary' => [
+                'auto' => 'flex: 0 1 auto; width: auto;',
+                'grow' => 'flex: 1 1 auto; width: auto;',
+                'full' => 'flex: 1 0 100%; width: 100%;',
+            ],
+            'selectors'            => ['{{WRAPPER}} .amw-ps__filter-row' => '{{VALUE}}'],
+            'description'          => __('«پرکردن» ردیف را کنار عنوان کش می‌آورد؛ «تمام عرض» آن را به خط بعدی زیر عنوان می‌برد.', 'almasara-widgets'),
+        ]);
         $this->add_full_flex_controls('filter_row', '{{WRAPPER}} .amw-ps__filter-row', [
             'direction' => 'row',
             'justify'   => 'flex-start',
@@ -391,6 +418,13 @@ class Product_Section extends Widget_Base {
         $this->end_controls_tab();
 
         $this->start_controls_tab('layout_tab_pills', ['label' => __('پیل‌ها', 'almasara-widgets')]);
+        $this->add_control('pills_grow', [
+            'label'        => __('پیل‌ها فضای باقی‌مانده را بگیرند', 'almasara-widgets'),
+            'type'         => Controls_Manager::SWITCHER,
+            'description'  => __('روشن = پیل‌ها کش می‌آیند و دکمه «مشاهده همه» به انتهای ردیف رانده می‌شود.', 'almasara-widgets'),
+            'return_value' => '1 1 auto',
+            'selectors'    => ['{{WRAPPER}} .amw-ps__pills' => 'flex: {{VALUE}};'],
+        ]);
         $this->add_full_flex_controls('pills', '{{WRAPPER}} .amw-ps__pills', [
             'direction' => 'row',
             'justify'   => 'flex-start',
@@ -443,6 +477,23 @@ class Product_Section extends Widget_Base {
             'label'     => __('دکمه مشاهده همه', 'almasara-widgets'),
             'tab'       => Controls_Manager::TAB_STYLE,
             'condition' => ['show_view_all' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('btn_width', [
+            'label'                => __('عرض دکمه', 'almasara-widgets'),
+            'type'                 => Controls_Manager::CHOOSE,
+            'default'              => 'auto',
+            'options'              => [
+                'auto' => ['title' => __('خودکار (اندازه محتوا)', 'almasara-widgets'), 'icon' => 'eicon-h-align-left'],
+                'grow' => ['title' => __('پرکردن فضای باقی‌مانده', 'almasara-widgets'), 'icon' => 'eicon-grow'],
+                'full' => ['title' => __('تمام عرض ردیف', 'almasara-widgets'), 'icon' => 'eicon-h-align-stretch'],
+            ],
+            'selectors_dictionary' => [
+                'auto' => 'flex: 0 0 auto; width: auto;',
+                'grow' => 'flex: 1 1 auto; width: auto;',
+                'full' => 'flex: 1 0 100%; width: 100%; justify-content: center;',
+            ],
+            'selectors'            => ['{{WRAPPER}} .amw-ps__viewall' => '{{VALUE}}'],
         ]);
 
         $this->add_group_control(Group_Control_Typography::get_type(), [
@@ -850,6 +901,7 @@ class Product_Section extends Widget_Base {
             'count'                => max(1, (int) $settings['products_count']),
             'orderby'              => $settings['orderby'],
             'order'                => $settings['order'],
+            'cache'                => max(0, (int) ($settings['cache_minutes'] ?? 0)),
             'speed'                => $speed['mobile'],
             'slidesPerView'        => $spv['mobile'],
             'spaceBetween'         => $space['mobile'],
@@ -881,6 +933,7 @@ class Product_Section extends Widget_Base {
             'count'      => $cfg['count'],
             'orderby'    => $cfg['orderby'],
             'order'      => $cfg['order'],
+            'cache'      => $cfg['cache'],
         ]);
         echo $result['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- رندرشده از قالب Listing، محتوایش مسئولیت خودِ جت‌انجین است
 

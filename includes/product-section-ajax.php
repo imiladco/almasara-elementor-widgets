@@ -11,8 +11,24 @@ if (!defined('ABSPATH')) {
  */
 final class Product_Section_Ajax {
 
+    const CACHE_VERSION_OPTION = 'amw_ps_cache_ver';
+
     public static function init(): void {
         add_action('rest_api_init', [self::class, 'register_endpoint']);
+
+        // با هر تغییر محصول/موجودی، نسخه کش بالا می‌رود تا کلید ترنزینت‌های
+        // قدیمی دیگر hit نشوند (نیازی به پاک‌سازی دستی نیست؛ خودشان با TTL
+        // منقضی می‌شوند). این مانع نمایش قیمت/موجودی کهنه بعد از ویرایش است.
+        $bump = [self::class, 'bump_cache_version'];
+        add_action('save_post_product', $bump);
+        add_action('woocommerce_update_product', $bump);
+        add_action('woocommerce_product_set_stock', $bump);
+        add_action('woocommerce_variation_set_stock', $bump);
+        add_action('woocommerce_product_set_stock_status', $bump);
+    }
+
+    public static function bump_cache_version(): void {
+        update_option(self::CACHE_VERSION_OPTION, (int) get_option(self::CACHE_VERSION_OPTION, 0) + 1, false);
     }
 
     public static function register_endpoint(): void {
@@ -34,6 +50,7 @@ final class Product_Section_Ajax {
             'count'      => absint($request->get_param('count')),
             'orderby'    => sanitize_key((string) $request->get_param('orderby')),
             'order'      => sanitize_key((string) $request->get_param('order')),
+            'cache'      => absint($request->get_param('cache')),
         ]);
 
         $response = rest_ensure_response($result);
@@ -46,7 +63,7 @@ final class Product_Section_Ajax {
      * کوئری محصولات + رندر کارت هرکدام؛ هم رندر اولیه ویجت هم endpoint
      * فیلتر AJAX از همین یک تابع استفاده می‌کنند تا همیشه یکسان بمانند.
      *
-     * @param array $args listing_id, category (0 = همه), count, orderby, order
+     * @param array $args listing_id, category (0 = همه), count, orderby, order, cache (دقیقه؛ 0=خاموش)
      * @return array{html: string, count: int}
      */
     public static function query_and_render(array $args): array {
@@ -55,19 +72,35 @@ final class Product_Section_Ajax {
         $count      = max(1, min(48, absint($args['count'] ?? 12)));
         $orderby    = $args['orderby'] ?? 'date';
         $order      = 'asc' === strtolower((string) ($args['order'] ?? 'desc')) ? 'ASC' : 'DESC';
+        $cache_min  = max(0, min(1440, absint($args['cache'] ?? 0)));
 
         $allowed_orderby = ['date', 'title', 'price', 'popularity', 'rand', 'menu_order'];
         if (!in_array($orderby, $allowed_orderby, true)) {
             $orderby = 'date';
         }
 
+        // کش موقت خروجی: سنگین‌ترین کار این ویجت رندرِ N قالب المنتوری در
+        // هر بارگذاری صفحه است. با کش، این هزینه فقط یک‌بار در هر بازه
+        // پرداخت می‌شود. مرتب‌سازی تصادفی هرگز کش نمی‌شود (بی‌معنی است).
+        $use_cache = $cache_min > 0 && 'rand' !== $orderby;
+        $cache_key = '';
+        if ($use_cache) {
+            $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
+            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order]));
+            $cached    = get_transient($cache_key);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+
         $query_args = [
-            'post_type'      => 'product',
-            'post_status'    => 'publish',
-            'posts_per_page' => $count,
-            'orderby'        => 'popularity' === $orderby ? 'meta_value_num' : $orderby,
-            'order'          => $order,
-            'no_found_rows'  => true,
+            'post_type'           => 'product',
+            'post_status'         => 'publish',
+            'posts_per_page'      => $count,
+            'orderby'             => 'popularity' === $orderby ? 'meta_value_num' : $orderby,
+            'order'               => $order,
+            'no_found_rows'       => true,
+            'ignore_sticky_posts' => true,
         ];
 
         if ('popularity' === $orderby) {
@@ -89,12 +122,20 @@ final class Product_Section_Ajax {
 
         $html = '';
         foreach ($query->posts as $post) {
-            $html .= '<div class="swiper-slide"><div class="amw-ps__card">' . self::render_jetengine_card($listing_id, (int) $post->ID) . '</div></div>';
+            // WP_Query خودش آبجکت پست را در کش گذاشته؛ مستقیم پاسش می‌دهیم
+            // تا render دوباره get_post صدا نزند.
+            $html .= '<div class="swiper-slide"><div class="amw-ps__card">' . self::render_jetengine_card($listing_id, $post) . '</div></div>';
         }
 
         wp_reset_postdata();
 
-        return ['html' => $html, 'count' => $query->post_count];
+        $result = ['html' => $html, 'count' => $query->post_count];
+
+        if ($use_cache) {
+            set_transient($cache_key, $result, $cache_min * MINUTE_IN_SECONDS);
+        }
+
+        return $result;
     }
 
     /**
@@ -114,17 +155,12 @@ final class Product_Section_Ajax {
      * وابسته است — اگر کارت خالی درآمد یا محصول اشتباه رندر شد، مشکل
      * دقیقاً همین‌جاست.
      */
-    private static function render_jetengine_card(int $listing_id, int $post_id): string {
-        if (!$listing_id || !$post_id) {
+    private static function render_jetengine_card(int $listing_id, \WP_Post $product): string {
+        if (!$listing_id) {
             return '';
         }
 
         if (!function_exists('jet_engine') || !class_exists('\Elementor\Plugin')) {
-            return '';
-        }
-
-        $product = get_post($post_id);
-        if (!$product) {
             return '';
         }
 
