@@ -51,6 +51,9 @@ final class Product_Section_Ajax {
             'orderby'    => sanitize_key((string) $request->get_param('orderby')),
             'order'      => sanitize_key((string) $request->get_param('order')),
             'cache'      => absint($request->get_param('cache')),
+            'has_price'  => (bool) absint($request->get_param('has_price')),
+            'in_stock'   => (bool) absint($request->get_param('in_stock')),
+            'has_image'  => (bool) absint($request->get_param('has_image')),
         ]);
 
         $response = rest_ensure_response($result);
@@ -63,7 +66,8 @@ final class Product_Section_Ajax {
      * کوئری محصولات + رندر کارت هرکدام؛ هم رندر اولیه ویجت هم endpoint
      * فیلتر AJAX از همین یک تابع استفاده می‌کنند تا همیشه یکسان بمانند.
      *
-     * @param array $args listing_id, category (0 = همه), count, orderby, order, cache (دقیقه؛ 0=خاموش)
+     * @param array $args listing_id, category (0 = همه), count, orderby, order,
+     *                     cache (دقیقه؛ 0=خاموش), has_price, in_stock, has_image (bool)
      * @return array{html: string, count: int}
      */
     public static function query_and_render(array $args): array {
@@ -73,6 +77,9 @@ final class Product_Section_Ajax {
         $orderby    = $args['orderby'] ?? 'date';
         $order      = 'asc' === strtolower((string) ($args['order'] ?? 'desc')) ? 'ASC' : 'DESC';
         $cache_min  = max(0, min(1440, absint($args['cache'] ?? 0)));
+        $has_price  = !empty($args['has_price']);
+        $in_stock   = !empty($args['in_stock']);
+        $has_image  = !empty($args['has_image']);
 
         $allowed_orderby = ['date', 'title', 'price', 'popularity', 'rand', 'menu_order'];
         if (!in_array($orderby, $allowed_orderby, true)) {
@@ -86,7 +93,7 @@ final class Product_Section_Ajax {
         $cache_key = '';
         if ($use_cache) {
             $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
-            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order]));
+            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order, $has_price, $in_stock, $has_image]));
             $cached    = get_transient($cache_key);
             if (is_array($cached)) {
                 return $cached;
@@ -118,6 +125,11 @@ final class Product_Section_Ajax {
             ]];
         }
 
+        $meta_query = self::build_filters_meta_query($has_price, $in_stock, $has_image);
+        if ($meta_query) {
+            $query_args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery
+        }
+
         $query = new \WP_Query($query_args);
 
         $html = '';
@@ -136,6 +148,84 @@ final class Product_Section_Ajax {
         }
 
         return $result;
+    }
+
+    /**
+     * meta_query سه فیلتر محتوا: قیمت / موجودی / عکس شاخص — بین کوئری اصلی
+     * و بررسی «آیا این دسته محصولی دارد» (برای مخفی‌کردن پیل‌های خالی)
+     * مشترک است تا هر دو همیشه دقیقاً یک منطق فیلتر داشته باشند.
+     */
+    private static function build_filters_meta_query(bool $has_price, bool $in_stock, bool $has_image): array {
+        $clauses = [];
+
+        if ($has_price) {
+            // محصولاتی که قیمتی برایشان ثبت نشده، متای _price را اصلاً
+            // ندارند یا آن را خالی دارند؛ NOT EXISTS محصولات بدون قیمت
+            // (متغیرهای بدون هیچ گزینه‌قیمت‌گذاری‌شده) را هم درست حذف می‌کند.
+            $clauses[] = [
+                'key'     => '_price',
+                'value'   => '',
+                'compare' => '!=',
+            ];
+        }
+
+        if ($in_stock) {
+            // بر پایه _stock_status (نه _stock) تا محصولات بدون موجودی
+            // مدیریت‌شده (تعداد نامحدود) به اشتباه حذف نشوند؛ ووکامرس این
+            // متا را برای همه محصولات — مدیریت‌شده یا نه — ست می‌کند.
+            $clauses[] = [
+                'key'     => '_stock_status',
+                'value'   => 'outofstock',
+                'compare' => '!=',
+            ];
+        }
+
+        if ($has_image) {
+            $clauses[] = [
+                'key'     => '_thumbnail_id',
+                'compare' => 'EXISTS',
+            ];
+        }
+
+        if (!$clauses) {
+            return [];
+        }
+
+        return array_merge(['relation' => 'AND'], $clauses);
+    }
+
+    /**
+     * آیا این دسته‌بندی، با همین فیلترهای محتوای فعال، حداقل یک محصول دارد؟
+     * برای مخفی‌کردن پیل دسته‌بندی‌های خالی در هدر ویجت استفاده می‌شود.
+     */
+    public static function category_has_products(int $term_id, bool $has_price, bool $in_stock, bool $has_image): bool {
+        $query_args = [
+            'post_type'              => 'product',
+            'post_status'            => 'publish',
+            'posts_per_page'         => 1,
+            'fields'                 => 'ids',
+            'no_found_rows'          => true,
+            'ignore_sticky_posts'    => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+        ];
+
+        if ($term_id > 0) {
+            $query_args['tax_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery
+                'taxonomy' => 'product_cat',
+                'field'    => 'term_id',
+                'terms'    => [$term_id],
+            ]];
+        }
+
+        $meta_query = self::build_filters_meta_query($has_price, $in_stock, $has_image);
+        if ($meta_query) {
+            $query_args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery
+        }
+
+        $query = new \WP_Query($query_args);
+
+        return $query->post_count > 0;
     }
 
     /**

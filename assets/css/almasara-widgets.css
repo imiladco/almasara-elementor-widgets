@@ -1434,10 +1434,17 @@ body.amw-pg-noscroll {
 
 .amw-ps__slider-wrap {
 	position: relative;
+	/* جلوگیری از collapse مارجین منفی زیر با فاصله بالای ویجت — تا مارجین
+	   منفی «amw-ps__slider» فقط داخل همین باکس اثر بگذارد، نه روی هدر بالا */
+	display: flow-root;
 }
 
 .amw-ps__slider {
 	width: 100%;
+	/* فضای اضافه تا سایه هاور کارت‌ها (بالا/کناره‌ها) با overflow:hidden
+	   ذاتی سوایپر بریده نشود؛ مارجین منفی محل واقعی چیدمان را خنثی می‌کند */
+	margin: -28px -16px 0;
+	padding: 28px 16px 0;
 }
 
 .amw-ps.is-loading .amw-ps__slider {
@@ -1455,7 +1462,9 @@ body.amw-pg-noscroll {
 .amw-ps__btn {
 	--amw-ps-nav-size: 18px;
 	position: absolute;
-	top: 50%;
+	/* +۱۴px = نصف پدینگ بالای amw-ps__slider (۲۸px)، تا وسط دکمه با وسط
+	   واقعی کارت‌ها بماند نه وسط باکس بزرگ‌شده برای جای سایه */
+	top: calc(50% + 14px);
 	transform: translateY(-50%);
 	left: 0;
 	display: inline-flex;
@@ -1485,7 +1494,7 @@ body.amw-pg-noscroll {
 }
 
 .amw-ps__btn.swiper-button-disabled {
-	opacity: .35;
+	/* شفافیت از تب «غیرفعال» در استایل کنترل می‌شود (پیش‌فرض ۰.۳۵) */
 	pointer-events: none;
 }
 

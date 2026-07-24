@@ -206,6 +206,36 @@ class Product_Section extends Widget_Base {
             'description' => __('رندر کارت‌ها سنگین‌ترین بخش این بخش است؛ کش این هزینه را فقط یک‌بار در هر بازه پرداخت می‌کند. با هر ویرایش محصول یا تغییر موجودی، کش خودکار باطل می‌شود. ۰ = خاموش. مرتب‌سازی تصادفی هرگز کش نمی‌شود.', 'almasara-widgets'),
         ]);
 
+        $this->add_control('heading_filters', [
+            'label'     => __('فیلترها', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('filters_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('هر فیلتر مستقل روشن/خاموش می‌شود و در بارگذاری اولیه و سوییچ AJAX دسته‌بندی‌ها یکسان اعمال می‌شود. پیل دسته‌بندی‌ای که بعد از این فیلترها هیچ محصولی نداشته باشد، نمایش داده نمی‌شود.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
+        ]);
+
+        $this->add_control('filter_has_price', [
+            'label'       => __('فقط محصولات دارای قیمت', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('محصولاتی که هیچ قیمتی برایشان ثبت نشده حذف می‌شوند.', 'almasara-widgets'),
+        ]);
+
+        $this->add_control('filter_in_stock', [
+            'label'       => __('فقط محصولات موجود', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('محصولات «ناموجود» حذف می‌شوند. محصولاتی که موجودی‌شان مدیریت نمی‌شود (بدون تعداد مشخص) حذف نخواهند شد.', 'almasara-widgets'),
+        ]);
+
+        $this->add_control('filter_has_image', [
+            'label'       => __('فقط محصولات دارای عکس شاخص', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('محصولات بدون تصویر شاخص حذف می‌شوند.', 'almasara-widgets'),
+        ]);
+
         $this->end_controls_section();
     }
 
@@ -632,7 +662,7 @@ class Product_Section extends Widget_Base {
             'label'      => __('رادیوس', 'almasara-widgets'),
             'type'       => Controls_Manager::DIMENSIONS,
             'size_units' => ['px', '%'],
-            'selectors'  => ['{{WRAPPER}} .amw-ps__card' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; overflow: hidden;'],
+            'selectors'  => ['{{WRAPPER}} .amw-ps__card' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
         ]);
 
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
@@ -640,10 +670,57 @@ class Product_Section extends Widget_Base {
             'selector' => '{{WRAPPER}} .amw-ps__card',
         ]);
 
+        $this->add_control('card_clip_corners', [
+            'label'       => __('قطع محتوای اضافی روی گوشه‌های گرد', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('فقط اگر محتوای داخل کارت (مثلاً تصویر) گوشهٔ گرد ندارد و از رادیوس بالا بیرون می‌زند روشن کنید. توجه: با روشن‌بودن این گزینه، هر سایه‌ای — حتی سایه هاوری که خودِ قالب Listing روی کارت گذاشته — روی لبه‌های کارت قطع می‌شود؛ به همین دلیل پیش‌فرض خاموش است.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-ps__card' => 'overflow: hidden;'],
+        ]);
+
         $this->end_controls_section();
     }
 
     /* ---------------- استایل: دکمه‌های قبلی/بعدی ---------------- */
+
+    /**
+     * یک حالت آیکون ناوبری (عادی/هاور/غیرفعال): رنگ آیکون با تشخیص درست
+     * fill/stroke خودِ svg (دقیقاً مثل سطر معرفی)، پس‌زمینه، سایه، شفافیت.
+     */
+    private function register_nav_state_controls(string $prefix, string $selector, array $defaults = []): void {
+        $this->add_control($prefix . '_color', [
+            'label'       => __('رنگ آیکون', 'almasara-widgets'),
+            'type'        => Controls_Manager::COLOR,
+            'default'     => $defaults['color'] ?? '',
+            'description' => __('روی آیکون پیش‌فرض و بخش‌های خطی (stroke) آیکون سفارشی اثر می‌گذارد.', 'almasara-widgets'),
+            'selectors'   => [
+                $selector => 'color: {{VALUE}};',
+                $selector . ' svg [fill]:not([fill="none"]):not([fill="transparent"])' => 'fill: {{VALUE}};',
+                $selector . ' svg [stroke]:not([stroke="none"]):not([stroke="transparent"])' => 'stroke: {{VALUE}};',
+                $selector . ' svg :is(path,circle,rect,ellipse,polygon,polyline,line):not([fill]):not([stroke])' => 'fill: {{VALUE}};',
+            ],
+        ]);
+
+        $this->add_control($prefix . '_bg', [
+            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'default'   => $defaults['bg'] ?? '',
+            'selectors' => [$selector => 'background-color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
+            'name'     => $prefix . '_shadow',
+            'selector' => $selector,
+        ]);
+
+        $this->add_responsive_control($prefix . '_opacity', [
+            'label'      => __('شفافیت', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0, 'max' => 1, 'step' => 0.01]],
+            'default'    => ['size' => $defaults['opacity'] ?? 1],
+            'selectors'  => [$selector => 'opacity: {{SIZE}};'],
+        ]);
+    }
 
     private function register_nav_style_controls(): void {
         $this->start_controls_section('section_style_nav', [
@@ -682,48 +759,56 @@ class Product_Section extends Widget_Base {
             ],
         ]);
 
-        $this->add_control('heading_nav_normal', [
-            'label'     => __('حالت عادی', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
+        $this->add_control('heading_nav_rotate', [
+            'label'       => __('زاویه آیکون', 'almasara-widgets'),
+            'type'        => Controls_Manager::HEADING,
+            'separator'   => 'before',
         ]);
 
-        $this->add_control('nav_color', [
-            'label'     => __('رنگ آیکون', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'default'   => '#16265c',
-            'selectors' => ['{{WRAPPER}} .amw-ps__btn' => 'color: {{VALUE}};'],
+        $this->add_control('nav_rotate_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('چون فقط یک فایل آیکون آپلود می‌شود، اگر جهت پیش‌فرض آن با دکمه بعدی هم‌خوان نیست، اینجا زاویه چرخش هرکدام را جدا تنظیم کنید.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
         ]);
 
-        $this->add_control('nav_bg', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'default'   => '#ffffff',
-            'selectors' => ['{{WRAPPER}} .amw-ps__btn' => 'background-color: {{VALUE}};'],
+        $this->add_responsive_control('nav_rotate_prev', [
+            'label'      => __('زاویه آیکون قبلی', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['deg'],
+            'range'      => ['deg' => ['min' => -180, 'max' => 180]],
+            'default'    => ['size' => 0, 'unit' => 'deg'],
+            'selectors'  => ['{{WRAPPER}} .amw-ps__btn--prev svg, {{WRAPPER}} .amw-ps__btn--prev img' => 'transform: rotate({{SIZE}}{{UNIT}});'],
         ]);
 
-        $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
-            'name'     => 'nav_shadow',
-            'selector' => '{{WRAPPER}} .amw-ps__btn',
+        $this->add_responsive_control('nav_rotate_next', [
+            'label'      => __('زاویه آیکون بعدی', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['deg'],
+            'range'      => ['deg' => ['min' => -180, 'max' => 180]],
+            'default'    => ['size' => 0, 'unit' => 'deg'],
+            'selectors'  => ['{{WRAPPER}} .amw-ps__btn--next svg, {{WRAPPER}} .amw-ps__btn--next img' => 'transform: rotate({{SIZE}}{{UNIT}});'],
         ]);
 
-        $this->add_control('heading_nav_hover', [
-            'label'     => __('حالت هاور', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
-        ]);
+        $this->start_controls_tabs('nav_state_tabs');
 
-        $this->add_control('nav_color_hover', [
-            'label'     => __('رنگ آیکون', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__btn:hover' => 'color: {{VALUE}};'],
-        ]);
+        $this->start_controls_tab('nav_state_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->register_nav_state_controls('nav', '{{WRAPPER}} .amw-ps__btn', ['color' => '#16265c', 'bg' => '#ffffff']);
+        $this->end_controls_tab();
 
-        $this->add_control('nav_bg_hover', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__btn:hover' => 'background-color: {{VALUE}};'],
+        $this->start_controls_tab('nav_state_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->register_nav_state_controls('nav_hover', '{{WRAPPER}} .amw-ps__btn:hover');
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('nav_state_tab_disabled', ['label' => __('غیرفعال', 'almasara-widgets')]);
+        $this->add_control('nav_disabled_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('این حالت وقتی دیده می‌شود که اسلایدر «بازگشت به کارت اول» خاموش باشد و کاربر به ابتدا/انتهای لیست برسد.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
         ]);
+        $this->register_nav_state_controls('nav_disabled', '{{WRAPPER}} .amw-ps__btn.swiper-button-disabled', ['opacity' => 0.35]);
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
 
         $this->end_controls_section();
     }
@@ -854,11 +939,14 @@ class Product_Section extends Widget_Base {
             'navigation'           => 'yes' === $settings['show_navigation'],
             'pagination'           => 'yes' === $settings['show_pagination'],
             'paginationClickable'  => 'yes' === ($settings['pagination_clickable'] ?? ''),
+            'hasPrice'             => 'yes' === ($settings['filter_has_price'] ?? ''),
+            'inStock'              => 'yes' === ($settings['filter_in_stock'] ?? ''),
+            'hasImage'             => 'yes' === ($settings['filter_has_image'] ?? ''),
         ];
 
         printf('<div class="amw-ps" data-cfg="%s">', esc_attr(wp_json_encode($cfg)));
 
-        $this->render_header($settings, $shop_url);
+        $this->render_header($settings, $shop_url, $cfg['hasPrice'], $cfg['inStock'], $cfg['hasImage']);
 
         echo '<div class="amw-ps__slider-wrap">';
         echo '<div class="amw-ps__slider swiper">';
@@ -871,6 +959,9 @@ class Product_Section extends Widget_Base {
             'orderby'    => $cfg['orderby'],
             'order'      => $cfg['order'],
             'cache'      => $cfg['cache'],
+            'has_price'  => $cfg['hasPrice'],
+            'in_stock'   => $cfg['inStock'],
+            'has_image'  => $cfg['hasImage'],
         ]);
         echo $result['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- رندرشده از قالب Listing، محتوایش مسئولیت خودِ جت‌انجین است
 
@@ -896,7 +987,7 @@ class Product_Section extends Widget_Base {
     }
 
     /** هدر: عنوان + پیل‌های دسته‌بندی + دکمه مشاهده همه */
-    private function render_header(array $settings, string $shop_url): void {
+    private function render_header(array $settings, string $shop_url, bool $has_price, bool $in_stock, bool $has_image): void {
         echo '<div class="amw-ps__header">';
 
         if ('' !== trim((string) $settings['title'])) {
@@ -921,6 +1012,13 @@ class Product_Section extends Widget_Base {
             }
             $term = get_term($term_id, 'product_cat');
             if (!$term || is_wp_error($term)) {
+                continue;
+            }
+            // اگر با همین فیلترهای فعال هیچ محصولی در این دسته نماند، پیلش
+            // اصلاً نمایش داده نشود (کلیک روی پیل خالی تجربه بدی است).
+            if (($has_price || $in_stock || $has_image)
+                && !\Almasara_Widgets\Product_Section_Ajax::category_has_products($term_id, $has_price, $in_stock, $has_image)
+            ) {
                 continue;
             }
             $label = '' !== trim((string) ($row['label'] ?? '')) ? $row['label'] : $term->name;
@@ -965,7 +1063,7 @@ class Product_Section extends Widget_Base {
 
         $path = $is_prev ? 'm15 6-6 6 6 6' : 'm9 6 6 6-6 6';
         printf(
-            '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%s"/></svg>',
+            '<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="%s" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             $path
         );
     }

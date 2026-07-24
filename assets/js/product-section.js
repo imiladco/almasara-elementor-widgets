@@ -87,7 +87,10 @@
 			count: cfg.count,
 			orderby: cfg.orderby,
 			order: cfg.order,
-			cache: cfg.cache || 0
+			cache: cfg.cache || 0,
+			has_price: cfg.hasPrice ? 1 : 0,
+			in_stock: cfg.inStock ? 1 : 0,
+			has_image: cfg.hasImage ? 1 : 0
 		});
 
 		setLoading(root, true);
