@@ -1452,7 +1452,7 @@ body.amw-pg-noscroll {
  * کم می‌کرد و کارت‌ها را باریک می‌کرد.
  */
 .amw-ps__slider {
-	--amw-ps-shadow-room: 0px;
+	--amw-ps-shadow-room: 24px;
 	width: auto;
 	margin: calc(-1 * var(--amw-ps-shadow-room));
 	padding: var(--amw-ps-shadow-room);

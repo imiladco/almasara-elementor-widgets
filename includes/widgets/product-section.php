@@ -224,6 +224,16 @@ class Product_Section extends Widget_Base {
             'description' => __('محصولاتی که هیچ قیمتی برایشان ثبت نشده حذف می‌شوند.', 'almasara-widgets'),
         ]);
 
+        $this->add_control('filter_min_price', [
+            'label'       => __('حداقل قیمت', 'almasara-widgets'),
+            'type'        => Controls_Manager::NUMBER,
+            'min'         => 0,
+            'step'        => 1000,
+            'placeholder' => __('بدون حداقل', 'almasara-widgets'),
+            'description' => __('محصولاتی که ارزان‌تر از این مبلغ‌اند حذف می‌شوند. مبنا کمترین قیمت محصول است (برای محصول متغیر، ارزان‌ترین گزینه). خالی یا ۰ = بدون حداقل.', 'almasara-widgets'),
+            'condition'   => ['filter_has_price' => 'yes'],
+        ]);
+
         $this->add_control('filter_in_stock', [
             'label'       => __('فقط محصولات موجود', 'almasara-widgets'),
             'type'        => Controls_Manager::SWITCHER,
@@ -396,6 +406,20 @@ class Product_Section extends Widget_Base {
             'selectors'            => ['{{WRAPPER}} .amw-ps__filter-row' => '{{VALUE}}'],
             'description'          => __('«پرکردن» ردیف را کنار عنوان کش می‌آورد؛ «تمام عرض» آن را به خط بعدی زیر عنوان می‌برد.', 'almasara-widgets'),
         ]);
+        $this->add_responsive_control('button_joins_title', [
+            'label'       => __('دکمه در ردیف عنوان', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('دکمه «مشاهده همه» را از کنار پیل‌ها به ردیف عنوان می‌برد و پیل‌ها را به خط بعد می‌فرستد. معمولاً فقط روی موبایل لازم است — همین کنترل را در حالت موبایل روشن کنید تا دسکتاپ دست‌نخورده بماند.', 'almasara-widgets'),
+            'selectors'   => [
+                // ردیف فیلتر از چیدمان خارج می‌شود تا پیل‌ها و دکمه مستقیماً
+                // آیتم‌های فلکسِ خودِ هدر شوند و بشود با order جابه‌جایشان کرد
+                '{{WRAPPER}} .amw-ps__filter-row' => 'display: contents;',
+                '{{WRAPPER}} .amw-ps__title'      => 'order: 1;',
+                '{{WRAPPER}} .amw-ps__viewall'    => 'order: 2;',
+                '{{WRAPPER}} .amw-ps__pills'      => 'order: 3; flex: 1 0 100%;',
+            ],
+        ]);
+
         $this->add_full_flex_controls('filter_row', '{{WRAPPER}} .amw-ps__filter-row', [
             'direction' => 'row',
             'justify'   => 'flex-start',
@@ -677,37 +701,50 @@ class Product_Section extends Widget_Base {
             'selectors'   => ['{{WRAPPER}} .amw-ps__card' => 'overflow: hidden;'],
         ]);
 
-        $this->add_responsive_control('card_shadow_room', [
-            'label'       => __('فضای تنفس سایه', 'almasara-widgets'),
-            'type'        => Controls_Manager::SLIDER,
-            'size_units'  => ['px'],
-            'range'       => ['px' => ['min' => 0, 'max' => 60]],
-            'default'     => ['size' => 24, 'unit' => 'px'],
-            'separator'   => 'before',
-            'description' => __('اسلایدر ناچار است محتوای بیرون کادرش را ببرد، و همین سایهٔ کارت‌ها را روی لبه‌های بالا و چپ و راست قطع می‌کند. این مقدار مرز برش را به همان اندازه به بیرون هل می‌دهد، بدون آنکه جای کارت‌ها تکان بخورد. کمی بیشتر از بزرگ‌ترین شعاع سایه‌تان بگذارید. اگر از «فاصله بین کارت‌ها» بزرگ‌ترش کنید، لبهٔ کارت بعدی از گوشه بیرون می‌زند. ۰ = خاموش.', 'almasara-widgets'),
-            'selectors'   => ['{{WRAPPER}} .amw-ps__slider' => '--amw-ps-shadow-room: {{SIZE}}{{UNIT}};'],
-        ]);
-
         $this->end_controls_section();
     }
 
     /* ---------------- استایل: دکمه‌های قبلی/بعدی ---------------- */
 
     /**
-     * یک حالت آیکون ناوبری (عادی/هاور/غیرفعال): رنگ آیکون با تشخیص درست
-     * fill/stroke خودِ svg (دقیقاً مثل سطر معرفی)، پس‌زمینه، سایه، شفافیت.
+     * یک حالت آیکون ناوبری (عادی/هاور/غیرفعال): رنگ آیکون، پس‌زمینه، سایه،
+     * شفافیت.
+     *
+     * دربارهٔ رنگ‌کردن SVG — دو نکته که نسخهٔ قبل را ناکار می‌کرد:
+     *   • «svg [fill]» سلکتور نواده است و به خودِ تگ ریشهٔ <svg fill="..">
+     *     نمی‌خورد، درحالی‌که بسیاری از فایل‌های آیکون رنگ را همان‌جا
+     *     می‌گذارند. پس ریشه جداگانه هدف گرفته می‌شود.
+     *   • فایل‌های خروجی ایلوستریتور/فیگما معمولاً style="fill:.." اینلاین
+     *     دارند و استایل اینلاین از قاعدهٔ معمولی قوی‌تر است؛ تنها راه غلبه
+     *     !important است. چون سلکتورها فقط به svgِ همین دکمه محدودند، دامنهٔ
+     *     اثرش بسته است.
+     * حالت‌های هاور/غیرفعال هم به‌خاطر ویژگیِ بالاترشان روی حالت عادی
+     * می‌نشینند، حتی با وجود !important در هر دو.
      */
     private function register_nav_state_controls(string $prefix, string $selector, array $defaults = []): void {
+        $paintable = static function (string $attr) use ($selector): array {
+            $skip = ':not([' . $attr . '="none"]):not([' . $attr . '="transparent"])';
+
+            return [
+                // ریشهٔ svg
+                $selector . ' svg' . $skip,
+                // فرزندان دارای همان ویژگی
+                $selector . ' svg [' . $attr . ']' . $skip,
+            ];
+        };
+
+        $fill_targets   = $paintable('fill');
+        $stroke_targets = $paintable('stroke');
+
         $this->add_control($prefix . '_color', [
             'label'       => __('رنگ آیکون', 'almasara-widgets'),
             'type'        => Controls_Manager::COLOR,
             'default'     => $defaults['color'] ?? '',
-            'description' => __('روی آیکون پیش‌فرض و بخش‌های خطی (stroke) آیکون سفارشی اثر می‌گذارد.', 'almasara-widgets'),
+            'description' => __('هم روی آیکون پیش‌فرض و هم روی SVG سفارشی اثر می‌گذارد؛ بخش‌هایی که عمداً بی‌رنگ‌اند (none/transparent) دست‌نخورده می‌مانند.', 'almasara-widgets'),
             'selectors'   => [
-                $selector => 'color: {{VALUE}};',
-                $selector . ' svg [fill]:not([fill="none"]):not([fill="transparent"])' => 'fill: {{VALUE}};',
-                $selector . ' svg [stroke]:not([stroke="none"]):not([stroke="transparent"])' => 'stroke: {{VALUE}};',
-                $selector . ' svg :is(path,circle,rect,ellipse,polygon,polyline,line):not([fill]):not([stroke])' => 'fill: {{VALUE}};',
+                $selector                     => 'color: {{VALUE}};',
+                implode(', ', $fill_targets)  => 'fill: {{VALUE}} !important;',
+                implode(', ', $stroke_targets) => 'stroke: {{VALUE}} !important;',
             ],
         ]);
 
@@ -953,11 +990,24 @@ class Product_Section extends Widget_Base {
             'hasPrice'             => 'yes' === ($settings['filter_has_price'] ?? ''),
             'inStock'              => 'yes' === ($settings['filter_in_stock'] ?? ''),
             'hasImage'             => 'yes' === ($settings['filter_has_image'] ?? ''),
+            'minPrice'             => max(0, (float) ($settings['filter_min_price'] ?? 0)),
         ];
+
+        // حداقل قیمت بدون فیلتر «دارای قیمت» بی‌معناست
+        if (!$cfg['hasPrice']) {
+            $cfg['minPrice'] = 0.0;
+        }
 
         printf('<div class="amw-ps" data-cfg="%s">', esc_attr(wp_json_encode($cfg)));
 
-        $this->render_header($settings, $shop_url, $cfg['hasPrice'], $cfg['inStock'], $cfg['hasImage']);
+        $filters = [
+            'has_price' => $cfg['hasPrice'],
+            'in_stock'  => $cfg['inStock'],
+            'has_image' => $cfg['hasImage'],
+            'min_price' => $cfg['minPrice'],
+        ];
+
+        $this->render_header($settings, $shop_url, $filters);
 
         echo '<div class="amw-ps__slider-wrap">';
         echo '<div class="amw-ps__slider swiper">';
@@ -970,10 +1020,7 @@ class Product_Section extends Widget_Base {
             'orderby'    => $cfg['orderby'],
             'order'      => $cfg['order'],
             'cache'      => $cfg['cache'],
-            'has_price'  => $cfg['hasPrice'],
-            'in_stock'   => $cfg['inStock'],
-            'has_image'  => $cfg['hasImage'],
-        ]);
+        ] + $filters);
         echo $result['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- رندرشده از قالب Listing، محتوایش مسئولیت خودِ جت‌انجین است
 
         echo '</div>'; // .swiper-wrapper
@@ -1001,7 +1048,7 @@ class Product_Section extends Widget_Base {
     }
 
     /** هدر: عنوان + پیل‌های دسته‌بندی + دکمه مشاهده همه */
-    private function render_header(array $settings, string $shop_url, bool $has_price, bool $in_stock, bool $has_image): void {
+    private function render_header(array $settings, string $shop_url, array $filters): void {
         echo '<div class="amw-ps__header">';
 
         if ('' !== trim((string) $settings['title'])) {
@@ -1022,9 +1069,9 @@ class Product_Section extends Widget_Base {
         // دسته‌هایی که با فیلترهای فعال هیچ محصولی ندارند یکجا کنار گذاشته
         // می‌شوند (کلیک روی پیل خالی تجربه بدی است). یکجا و کش‌شده، تا مثل
         // قبل به‌ازای هر پیل یک کوئری جدا زده نشود.
-        $rows     = (array) ($settings['categories'] ?? []);
-        $wanted   = array_map(static fn($row) => absint($row['category'] ?? 0), $rows);
-        $non_empty = \Almasara_Widgets\Product_Section_Ajax::filter_non_empty_categories($wanted, $has_price, $in_stock, $has_image);
+        $rows      = (array) ($settings['categories'] ?? []);
+        $wanted    = array_map(static fn($row) => absint($row['category'] ?? 0), $rows);
+        $non_empty = \Almasara_Widgets\Product_Section_Ajax::filter_non_empty_categories($wanted, $filters);
 
         foreach ($rows as $row) {
             $term_id = absint($row['category'] ?? 0);

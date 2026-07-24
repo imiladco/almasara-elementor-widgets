@@ -54,6 +54,7 @@ final class Product_Section_Ajax {
             'has_price'  => (bool) absint($request->get_param('has_price')),
             'in_stock'   => (bool) absint($request->get_param('in_stock')),
             'has_image'  => (bool) absint($request->get_param('has_image')),
+            'min_price'  => (float) $request->get_param('min_price'),
         ]);
 
         $response = rest_ensure_response($result);
@@ -80,6 +81,7 @@ final class Product_Section_Ajax {
         $has_price  = !empty($args['has_price']);
         $in_stock   = !empty($args['in_stock']);
         $has_image  = !empty($args['has_image']);
+        $min_price  = $has_price ? max(0.0, (float) ($args['min_price'] ?? 0)) : 0.0;
 
         $allowed_orderby = ['date', 'title', 'price', 'popularity', 'rand', 'menu_order'];
         if (!in_array($orderby, $allowed_orderby, true)) {
@@ -93,7 +95,7 @@ final class Product_Section_Ajax {
         $cache_key = '';
         if ($use_cache) {
             $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
-            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order, $has_price, $in_stock, $has_image]));
+            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order, $has_price, $in_stock, $has_image, $min_price]));
             $cached    = get_transient($cache_key);
             if (is_array($cached)) {
                 return $cached;
@@ -112,7 +114,7 @@ final class Product_Section_Ajax {
 
         $query_args = self::apply_filters_to_query_args($query_args, $category, $in_stock, $has_image);
 
-        $lookup = self::build_lookup_clauses($orderby, $order, $has_price);
+        $lookup = self::build_lookup_clauses($orderby, $order, $has_price, $min_price);
 
         if ($lookup) {
             if (self::orders_by_lookup($orderby)) {
@@ -168,14 +170,15 @@ final class Product_Section_Ajax {
      *   • کندی: مرتب‌سازی با meta_value_num روی جدول postmeta به‌مراتب از
      *     خواندن یک ستون ایندکس‌شده گران‌تر است.
      * min_price فقط برای محصول بدون قیمت NULL است؛ محصول رایگان مقدار ۰
-     * دارد، پس فیلتر «دارای قیمت» رایگان‌ها را حذف نمی‌کند.
+     * دارد، پس فیلتر «دارای قیمت» رایگان‌ها را حذف نمی‌کند. همین ستون مبنای
+     * «حداقل قیمت» هم هست: برای محصول متغیر، ارزان‌ترین گزینه سنجیده می‌شود.
      *
      * @return callable|null null یعنی این کوئری به جدول نیازی ندارد، یا جدول
      *                      در دسترس نیست. حالت دوم عملاً رخ نمی‌دهد (ووکامرس
      *                      از ۳.۶ همیشه آن را می‌سازد) و اگر رخ دهد مرتب‌سازی
      *                      به مسیر متایی برمی‌گردد و فیلتر قیمت اعمال نمی‌شود.
      */
-    private static function build_lookup_clauses(string $orderby, string $order, bool $has_price): ?callable {
+    private static function build_lookup_clauses(string $orderby, string $order, bool $has_price, float $min_price = 0.0): ?callable {
         global $wpdb;
 
         if (empty($wpdb->wc_product_meta_lookup)) {
@@ -189,16 +192,21 @@ final class Product_Section_Ajax {
             $order_column = 'total_sales';
         }
 
-        if ('' === $order_column && !$has_price) {
+        if ('' === $order_column && !$has_price && $min_price <= 0) {
             return null;
         }
 
-        // هر دو مقدار از مجموعه‌ای ثابت و داخلی می‌آیند، نه از ورودی کاربر
-        return static function (array $clauses) use ($wpdb, $order_column, $order, $has_price): array {
+        // ستون و جهت از مجموعه‌ای ثابت و داخلی می‌آیند، نه از ورودی کاربر؛
+        // حداقل قیمت هم که از کاربر می‌آید با prepare بایند می‌شود.
+        return static function (array $clauses) use ($wpdb, $order_column, $order, $has_price, $min_price): array {
             $clauses['join'] .= " INNER JOIN {$wpdb->wc_product_meta_lookup} amw_pml ON {$wpdb->posts}.ID = amw_pml.product_id ";
 
             if ($has_price) {
                 $clauses['where'] .= ' AND amw_pml.min_price IS NOT NULL ';
+            }
+
+            if ($min_price > 0) {
+                $clauses['where'] .= $wpdb->prepare(' AND amw_pml.min_price >= %f ', $min_price);
             }
 
             if ('' !== $order_column) {
@@ -271,17 +279,23 @@ final class Product_Section_Ajax {
      * داده می‌شود، حتماً بعد از کلیک هم کارت داشته باشد.
      *
      * @param int[] $term_ids
+     * @param array $filters has_price, in_stock, has_image (bool), min_price (float)
      * @return int[]
      */
-    public static function filter_non_empty_categories(array $term_ids, bool $has_price, bool $in_stock, bool $has_image): array {
+    public static function filter_non_empty_categories(array $term_ids, array $filters): array {
         $term_ids = array_values(array_unique(array_filter(array_map('absint', $term_ids))));
+
+        $has_price = !empty($filters['has_price']);
+        $in_stock  = !empty($filters['in_stock']);
+        $has_image = !empty($filters['has_image']);
+        $min_price = $has_price ? max(0.0, (float) ($filters['min_price'] ?? 0)) : 0.0;
 
         if (!$term_ids || (!$has_price && !$in_stock && !$has_image)) {
             return $term_ids;
         }
 
         $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
-        $cache_key = 'amw_ps_cats_' . md5(wp_json_encode([$ver, $term_ids, $has_price, $in_stock, $has_image]));
+        $cache_key = 'amw_ps_cats_' . md5(wp_json_encode([$ver, $term_ids, $has_price, $in_stock, $has_image, $min_price]));
         $cached    = get_transient($cache_key);
         if (is_array($cached)) {
             return $cached;
@@ -302,7 +316,7 @@ final class Product_Section_Ajax {
 
             $query_args = self::apply_filters_to_query_args($query_args, $term_id, $in_stock, $has_image);
 
-            $lookup = self::build_lookup_clauses('date', 'DESC', $has_price);
+            $lookup = self::build_lookup_clauses('date', 'DESC', $has_price, $min_price);
             if ($lookup) {
                 add_filter('posts_clauses', $lookup);
             }

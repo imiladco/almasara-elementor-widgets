@@ -19,7 +19,14 @@
 			spaceBetween: cfg.spaceBetween || 0,
 			breakpoints: cfg.breakpoints || {},
 			rewind: !!cfg.rewind,
-			rtl: !!cfg.rtl
+			rtl: !!cfg.rtl,
+			// در ادیتور المنتور، ویجت اغلب وقتی ساخته می‌شود که هنوز پهنای
+			// واقعی ندارد (پنل باز/بسته می‌شود، تب عوض می‌شود، ویجت جابه‌جا
+			// می‌شود). بدون این‌ها سوایپر یک‌بار با عرض غلط اندازه می‌گیرد و
+			// همان‌طور خراب می‌ماند — علت «گاهی پیش‌نمایش به هم می‌ریزد».
+			observer: true,
+			observeParents: true,
+			observeSlideChildren: true
 		};
 
 		if (cfg.autoplay) {
@@ -90,7 +97,8 @@
 			cache: cfg.cache || 0,
 			has_price: cfg.hasPrice ? 1 : 0,
 			in_stock: cfg.inStock ? 1 : 0,
-			has_image: cfg.hasImage ? 1 : 0
+			has_image: cfg.hasImage ? 1 : 0,
+			min_price: cfg.minPrice || 0
 		});
 
 		setLoading(root, true);
@@ -150,8 +158,22 @@
 
 	// شبکه ایمنی: مثل ویجت اسلایدر هیرو، در برابر خطای افزونه‌های دیگر که
 	// ممکن است حلقه element_ready المنتور را متوقف کنند مقاوم می‌کند.
+	//
+	// حتماً throttle می‌شود: بدون آن، هر جهش DOM یک پیمایش کامل صفحه راه
+	// می‌انداخت — در ادیتور المنتور که مدام DOM را بازمی‌سازد، همین باعث
+	// کندی و به‌هم‌ریختن پیش‌نمایش می‌شد.
 	if (window.MutationObserver && document.body) {
-		new MutationObserver(function () { initAll(document); })
-			.observe(document.body, { childList: true, subtree: true });
+		var queued = false;
+		var scan = function () {
+			if (queued) {
+				return;
+			}
+			queued = true;
+			window.requestAnimationFrame(function () {
+				queued = false;
+				initAll(document);
+			});
+		};
+		new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
 	}
 })();
