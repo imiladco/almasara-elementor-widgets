@@ -568,99 +568,79 @@ class Product_Section extends Widget_Base {
 
     /* ---------------- استایل: پیل‌های دسته‌بندی ---------------- */
 
+    /**
+     * مجموعه کامل کنترل‌های یک حالت پیل: تایپوگرافی، رنگ، پس‌زمینه،
+     * حاشیه، پدینگ، رادیوس — روی یک سلکتور مشخص (حالت عادی/هاور/فعال).
+     */
+    private function register_pill_state_controls(string $prefix, string $selector, array $defaults = []): void {
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => $prefix . '_typo',
+            'label'    => __('تایپوگرافی', 'almasara-widgets'),
+            'selector' => $selector,
+        ]);
+
+        $this->add_control($prefix . '_color', [
+            'label'     => __('رنگ متن', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'default'   => $defaults['color'] ?? '',
+            'selectors' => [$selector => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Background::get_type(), [
+            'name'     => $prefix . '_bg',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
+            'types'    => ['classic', 'gradient'],
+            'selector' => $selector,
+        ]);
+
+        $this->add_group_control(Group_Control_Border::get_type(), [
+            'name'     => $prefix . '_border',
+            'label'    => __('حاشیه', 'almasara-widgets'),
+            'selector' => $selector,
+        ]);
+
+        $this->add_responsive_control($prefix . '_padding', [
+            'label'      => __('پدینگ', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => [$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [$selector => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+    }
+
     private function register_pills_style_controls(): void {
         $this->start_controls_section('section_style_pills', [
             'label' => __('پیل‌های دسته‌بندی', 'almasara-widgets'),
             'tab'   => Controls_Manager::TAB_STYLE,
         ]);
 
-        $this->add_group_control(Group_Control_Typography::get_type(), [
-            'name'     => 'pill_typo',
-            'selector' => '{{WRAPPER}} .amw-ps__pill',
+        $this->add_control('pill_states_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('برای جلوگیری از پرش چیدمان هنگام هاور یا انتخاب، بهتر است پدینگ و ضخامت حاشیه را در هر سه حالت یکسان نگه دارید و فقط رنگ‌ها را تغییر دهید.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
         ]);
 
-        $this->add_responsive_control('pill_padding', [
-            'label'      => __('پدینگ', 'almasara-widgets'),
-            'type'       => Controls_Manager::DIMENSIONS,
-            'size_units' => ['px', 'em'],
-            'selectors'  => ['{{WRAPPER}} .amw-ps__pill' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
-        ]);
+        $this->start_controls_tabs('pill_state_tabs');
 
-        $this->add_control('pill_radius', [
-            'label'      => __('رادیوس', 'almasara-widgets'),
-            'type'       => Controls_Manager::SLIDER,
-            'size_units' => ['px'],
-            'range'      => ['px' => ['min' => 0, 'max' => 40]],
-            'default'    => ['size' => 20, 'unit' => 'px'],
-            'selectors'  => ['{{WRAPPER}} .amw-ps__pill' => 'border-radius: {{SIZE}}{{UNIT}};'],
-        ]);
+        $this->start_controls_tab('pill_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->register_pill_state_controls('pill', '{{WRAPPER}} .amw-ps__pill');
+        $this->end_controls_tab();
 
-        $this->add_control('heading_pill_normal', [
-            'label'     => __('حالت عادی', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
-        ]);
+        $this->start_controls_tab('pill_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->register_pill_state_controls('pill_hover', '{{WRAPPER}} .amw-ps__pill:hover');
+        $this->end_controls_tab();
 
-        $this->add_control('pill_color', [
-            'label'     => __('رنگ متن', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill' => 'color: {{VALUE}};'],
-        ]);
+        $this->start_controls_tab('pill_tab_active', ['label' => __('فعال', 'almasara-widgets')]);
+        $this->register_pill_state_controls('pill_active', '{{WRAPPER}} .amw-ps__pill.is-active', ['color' => '#ffffff']);
+        $this->end_controls_tab();
 
-        $this->add_control('pill_bg', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill' => 'background-color: {{VALUE}};'],
-        ]);
-
-        $this->add_group_control(Group_Control_Border::get_type(), [
-            'name'     => 'pill_border',
-            'selector' => '{{WRAPPER}} .amw-ps__pill',
-        ]);
-
-        $this->add_control('heading_pill_hover', [
-            'label'     => __('حالت هاور', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
-        ]);
-
-        $this->add_control('pill_color_hover', [
-            'label'     => __('رنگ متن', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill:hover' => 'color: {{VALUE}};'],
-        ]);
-
-        $this->add_control('pill_bg_hover', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill:hover' => 'background-color: {{VALUE}};'],
-        ]);
-
-        $this->add_control('heading_pill_active', [
-            'label'     => __('حالت فعال (انتخاب‌شده)', 'almasara-widgets'),
-            'type'      => Controls_Manager::HEADING,
-            'separator' => 'before',
-        ]);
-
-        $this->add_control('pill_color_active', [
-            'label'     => __('رنگ متن', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'default'   => '#ffffff',
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill.is-active' => 'color: {{VALUE}};'],
-        ]);
-
-        $this->add_control('pill_bg_active', [
-            'label'     => __('رنگ پس‌زمینه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'default'   => '#16265c',
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill.is-active' => 'background-color: {{VALUE}};'],
-        ]);
-
-        $this->add_control('pill_border_color_active', [
-            'label'     => __('رنگ حاشیه', 'almasara-widgets'),
-            'type'      => Controls_Manager::COLOR,
-            'selectors' => ['{{WRAPPER}} .amw-ps__pill.is-active' => 'border-color: {{VALUE}};'],
-        ]);
+        $this->end_controls_tabs();
 
         $this->end_controls_section();
     }

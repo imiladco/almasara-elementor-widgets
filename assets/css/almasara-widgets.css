@@ -1407,13 +1407,21 @@ body.amw-pg-noscroll {
 .amw-ps__pill {
 	display: inline-flex;
 	align-items: center;
+	padding: 8px 18px;
 	border: 1px solid transparent;
+	border-radius: 20px;
 	background: #f2f4f8;
 	color: #4b5259;
 	font: inherit;
 	cursor: pointer;
 	white-space: nowrap;
 	transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+/* پیش‌فرض حالت فعال (رنگ‌ها از پنل قابل تغییرند) */
+.amw-ps__pill.is-active {
+	background: #16265c;
+	color: #fff;
 }
 
 .amw-ps__viewall {
