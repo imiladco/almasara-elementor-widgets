@@ -107,13 +107,26 @@
 		var visible = Math.ceil(parseFloat(cfg.slidesPerView) || 0) || wrapper.children.length || 4;
 		var count = Math.max(1, Math.min(visible + 1, parseInt(cfg.count, 10) || visible));
 
+		// اسکلت عمداً از همان کلاس‌های کارت واقعی ساخته می‌شود (amw-card،
+		// ‎__media، ‎__body، ‎__title، ‎__price). یعنی هر استایلی که کاربر روی
+		// کارت گذاشته — پدینگ، رادیوس، پس‌زمینه، حاشیه، چیدمان ردیف قیمت —
+		// بدون هیچ تنظیم جداگانه‌ای روی اسکلت هم می‌افتد و شبح، دقیقاً قالبِ
+		// همان کارت را نشان می‌دهد. المان تصویر کلاس amw-card__img را هم
+		// می‌گیرد تا عرض و ارتفاع و نسبت ابعادِ تنظیم‌شده را عیناً بگیرد.
 		var slide = '<div class="swiper-slide"><div class="amw-ps__card">'
 			+ '<div class="amw-card amw-card--skeleton" aria-hidden="true">'
-			+ '<div class="amw-card__media"><span class="amw-skeleton amw-skeleton--media"></span></div>'
+			+ '<div class="amw-card__media">'
+			+ '<span class="amw-card__img amw-skeleton amw-skeleton--media"></span>'
+			+ '</div>'
 			+ '<div class="amw-card__body">'
+			+ '<div class="amw-card__title">'
 			+ '<span class="amw-skeleton amw-skeleton--line"></span>'
 			+ '<span class="amw-skeleton amw-skeleton--line amw-skeleton--short"></span>'
-			+ '<span class="amw-skeleton amw-skeleton--line amw-skeleton--price"></span>'
+			+ '</div>'
+			+ '<div class="amw-card__price">'
+			+ '<span class="amw-skeleton amw-skeleton--slogan"></span>'
+			+ '<span class="amw-skeleton amw-skeleton--amount"></span>'
+			+ '</div>'
 			+ '</div></div></div></div>';
 
 		wrapper.innerHTML = new Array(count + 1).join(slide);

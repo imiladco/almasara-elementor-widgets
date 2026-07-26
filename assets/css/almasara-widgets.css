@@ -1466,6 +1466,30 @@ button.amw-ps__pill.is-active {
 	pointer-events: none;
 }
 
+/*
+ * چیدمانِ پیش از مقداردهی سوایپر.
+ *
+ * CSS خودِ سوایپر به هر اسلاید «width: 100%» می‌دهد، پس تا وقتی JS نرسیده
+ * یک کارت تمام‌عرض دیده می‌شود. این خیلی وقت‌ها ناچیز است، ولی اگر افزونهٔ
+ * بهینه‌سازی اجرای JS را تا اولین تعامل کاربر عقب بیندازد، همین حالت
+ * ثانیه‌ها روی صفحه می‌ماند.
+ *
+ * پس عرض و فاصله را از همان مقادیر پنل — که المنتور به‌صورت متغیر و با
+ * مدیا-کوئری هر دستگاه بیرون می‌دهد — می‌سازیم. سوایپر موقع init کلاس
+ * swiper-initialized را می‌گذارد و از آن لحظه این قواعد کنار می‌روند و
+ * اندازه‌گذاری اینلاین خودش حاکم می‌شود؛ یعنی چیدمان قبل و بعد یکی است و
+ * هیچ پرشی رخ نمی‌دهد.
+ */
+.amw-ps__slider:not(.swiper-initialized) .swiper-wrapper {
+	column-gap: var(--amw-ps-gap, 20px);
+}
+
+.amw-ps__slider:not(.swiper-initialized) .swiper-slide {
+	width: calc(
+		(100% - (var(--amw-ps-spv, 4) - 1) * var(--amw-ps-gap, 20px)) / var(--amw-ps-spv, 4)
+	);
+}
+
 .amw-ps__card {
 	height: 100%;
 }
@@ -1667,23 +1691,47 @@ button.amw-ps__btn.swiper-button-disabled {
 	animation: amw-skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
+/*
+ * شکل اجزای اسکلت. چون اسکلت از کلاس‌های خودِ کارت استفاده می‌کند، اندازه و
+ * پدینگ و رادیوسِ تنظیم‌شدهٔ کاربر از قبل روی آن اعمال شده؛ اینجا فقط چیزی
+ * که در کارت واقعی «محتوا» بود با یک بلوک خاکستری جایگزین می‌شود.
+ */
 .amw-skeleton--media {
 	width: 100%;
+	/* اگر کاربر نسبت ابعاد یا ارتفاع تعیین کرده باشد، همان بالادست می‌ماند
+	   چون سلکتور کنترل‌های المنتور ویژگی بالاتری دارد */
 	aspect-ratio: 1 / 1;
+}
+
+/* عنوانِ کارت واقعی در N خط بریده می‌شود؛ روی اسکلت این برش باید خنثی شود
+   وگرنه فقط یکی از دو خط شبح دیده می‌شود */
+.amw-card--skeleton .amw-card__title {
+	display: block;
+	overflow: visible;
 }
 
 .amw-skeleton--line {
 	height: 1em;
 }
 
+.amw-skeleton--line + .amw-skeleton--line {
+	margin-top: .5em;
+}
+
 .amw-skeleton--short {
 	width: 60%;
 }
 
-.amw-skeleton--price {
-	width: 40%;
+/* هم‌اندازهٔ پیل شعار و عدد قیمت در کارت واقعی */
+.amw-skeleton--slogan {
+	width: 6.5em;
+	height: 2.2em;
+	border-radius: 8px;
+}
+
+.amw-skeleton--amount {
+	width: 5em;
 	height: 1.4em;
-	margin-top: auto;
 }
 
 @keyframes amw-skeleton-shimmer {

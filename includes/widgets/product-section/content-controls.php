@@ -356,6 +356,10 @@ trait Content_Controls {
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
+        // سلکتور فقط برای حالتِ پیش از مقداردهی سوایپر است: تا وقتی JS نرسیده،
+        // چیدمان از همین متغیر ساخته می‌شود تا کاربر «یک کارت تمام‌عرض» نبیند.
+        // چون المنتور خودش مدیا-کوئری هر دستگاه را می‌سازد، همان ارث‌بری‌ای
+        // که Swiper در JS اعمال می‌کند اینجا در CSS هم برقرار است.
         $this->add_responsive_control('slides_per_view', [
             'label'          => __('تعداد کارت هم‌زمان', 'almasara-widgets'),
             'type'           => Controls_Manager::NUMBER,
@@ -364,6 +368,7 @@ trait Content_Controls {
             'mobile_default' => 1.2,
             'min'            => 1,
             'step'           => 0.1,
+            'selectors'      => ['{{WRAPPER}} .amw-ps' => '--amw-ps-spv: {{VALUE}};'],
         ]);
 
         $this->add_responsive_control('slide_width', [
@@ -385,6 +390,7 @@ trait Content_Controls {
             'default'     => 20,
             'min'         => 0,
             'description' => __('برای هر دستگاه جداگانه قابل تنظیم است؛ اگر برای تبلت/موبایل خالی بماند، مقدار دستگاه بزرگ‌تر به ارث می‌رسد.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-ps' => '--amw-ps-gap: {{VALUE}}px;'],
         ]);
 
         $this->add_responsive_control('speed', [
