@@ -20,10 +20,13 @@ final class Plugin {
     }
 
     private function __construct() {
+        require_once ALMASARA_WIDGETS_PATH . 'includes/responsive.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-extras.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-card.php';
-        require_once ALMASARA_WIDGETS_PATH . 'includes/product-section-ajax.php';
-        Product_Section_Ajax::init();
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-section/settings.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-section/query.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-section/rest.php';
+        Product_Section\Rest::init();
 
         add_action('elementor/elements/categories_registered', [$this, 'register_category']);
         add_action('elementor/widgets/register', [$this, 'register_widgets']);
@@ -55,6 +58,8 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-faq.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-reviews.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/hero-slider.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-section/content-controls.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-section/style-controls.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-section.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/widgets/product-price.php';
 

@@ -8,6 +8,7 @@ use Elementor\Group_Control_Typography;
 use Elementor\Group_Control_Border;
 use Elementor\Group_Control_Box_Shadow;
 use Elementor\Group_Control_Background;
+use Almasara_Widgets\Responsive;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -680,36 +681,13 @@ class Hero_Slider extends Widget_Base {
         // المنتور دسکتاپ‌محور است (پایه = دسکتاپ، override برای کوچک‌تر)؛ Swiper
         // موبایل‌محور است (پایه = کوچک‌ترین، breakpoints برای بزرگ‌تر). این تابع
         // مقادیر دسکتاپ/تبلت/موبایل المنتور را به ساختار breakpoints سوایپر می‌برد.
-        //
-        // نکتهٔ مهم: المنتور مقدارِ تنظیم‌نشدهٔ یک کنترل ریسپانسیو را «رشتهٔ
-        // خالی» ذخیره می‌کند، نه null. پس ?? هرگز عمل نمی‌کرد و (int) ''
-        // برابر صفر می‌شد — یعنی فاصلهٔ اسلایدها و سرعت گذار روی تبلت و
-        // موبایل به‌زور صفر می‌شدند و مقدار دسکتاپ دور ریخته می‌شد.
-        // ترتیب ارث‌بری هم مثل خودِ CSS المنتور است: موبایل ← تبلت ← دسکتاپ.
-        $set = static function ($value) {
-            if (is_array($value)) {
-                return (isset($value['size']) && '' !== $value['size'] && null !== $value['size']) ? $value : null;
-            }
-            return ('' !== $value && null !== $value) ? $value : null;
-        };
-
-        $responsive = static function (array $settings, string $key, callable $cast) use ($set) {
-            $desktop = $set($settings[$key] ?? null);
-            $tablet  = $set($settings[$key . '_tablet'] ?? null) ?? $desktop;
-            $mobile  = $set($settings[$key . '_mobile'] ?? null) ?? $tablet;
-
-            return [
-                'mobile'  => $cast($mobile),
-                'tablet'  => $cast($tablet),
-                'desktop' => $cast($desktop),
-            ];
-        };
-        $to_int   = static fn($v) => (int) $v;
-        $to_float = static fn($v) => (float) $v;
-
-        $speed = $responsive($settings, 'speed', $to_int);
-        $spv   = $responsive($settings, 'slides_per_view', $to_float);
-        $space = $responsive($settings, 'space_between', $to_int);
+        // مقدار تنظیم‌نشدهٔ کنترل ریسپانسیو در المنتور «رشتهٔ خالی» است نه
+        // null؛ جزئیاتش در خودِ کلاس Responsive توضیح داده شده. این کلاس بین
+        // ویجت‌ها مشترک است تا آن باگ که یک‌بار اینجا و یک‌بار در بخش
+        // محصولات مستقل تکرار شده بود، جای سومی سبز نشود.
+        $speed = Responsive::resolve($settings, 'speed', Responsive::to_int());
+        $spv   = Responsive::resolve($settings, 'slides_per_view', Responsive::to_float());
+        $space = Responsive::resolve($settings, 'space_between', Responsive::to_int());
 
         $cfg = [
             'autoplay'             => 'yes' === $settings['autoplay'],
