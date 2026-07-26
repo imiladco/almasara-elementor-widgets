@@ -8,6 +8,8 @@ use Elementor\Group_Control_Typography;
 use Elementor\Group_Control_Border;
 use Elementor\Group_Control_Box_Shadow;
 use Elementor\Group_Control_Background;
+use Elementor\Group_Control_Text_Shadow;
+use Elementor\Group_Control_Css_Filter;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -60,6 +62,7 @@ class Product_Section extends Widget_Base {
         $this->register_header_content_controls();
         $this->register_categories_content_controls();
         $this->register_source_content_controls();
+        $this->register_card_content_controls();
         $this->register_slider_content_controls();
 
         $this->register_layout_style_controls();
@@ -67,6 +70,10 @@ class Product_Section extends Widget_Base {
         $this->register_button_style_controls();
         $this->register_pills_style_controls();
         $this->register_card_style_controls();
+        $this->register_card_item_style_controls();
+        $this->register_card_image_style_controls();
+        $this->register_card_title_style_controls();
+        $this->register_card_price_style_controls();
         $this->register_nav_style_controls();
         $this->register_pagination_style_controls();
     }
@@ -156,11 +163,22 @@ class Product_Section extends Widget_Base {
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
+        $this->add_control('card_source', [
+            'label'   => __('کارت محصول از', 'almasara-widgets'),
+            'type'    => Controls_Manager::SELECT,
+            'default' => 'jetengine',
+            'options' => [
+                'jetengine' => __('قالب Listing جت‌انجین', 'almasara-widgets'),
+                'builtin'   => __('کارت داخلی این افزونه', 'almasara-widgets'),
+            ],
+        ]);
+
         $this->add_control('listing_id', [
             'label'       => __('قالب Listing جت‌انجین', 'almasara-widgets'),
             'type'        => Controls_Manager::SELECT2,
             'options'     => $this->get_jetengine_listing_options(),
             'description' => __('قالب کارت محصولی که قبلاً در جت‌انجین ساخته‌اید.', 'almasara-widgets'),
+            'condition'   => ['card_source' => 'jetengine'],
         ]);
 
         $this->add_control('products_count', [
@@ -244,6 +262,146 @@ class Product_Section extends Widget_Base {
             'label'       => __('فقط محصولات دارای عکس شاخص', 'almasara-widgets'),
             'type'        => Controls_Manager::SWITCHER,
             'description' => __('محصولات بدون تصویر شاخص حذف می‌شوند.', 'almasara-widgets'),
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    /* ---------------- محتوا: کارت داخلی ---------------- */
+
+    private function register_card_content_controls(): void {
+        $this->start_controls_section('section_card', [
+            'label'     => __('کارت محصول', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_CONTENT,
+            'condition' => ['card_source' => 'builtin'],
+        ]);
+
+        $this->add_control('card_link', [
+            'label'       => __('کل کارت لینک محصول باشد', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'default'     => 'yes',
+            'description' => __('با کلیک روی هر جای کارت، صفحهٔ محصول باز می‌شود.', 'almasara-widgets'),
+        ]);
+
+        $this->add_control('card_link_title', [
+            'label'       => __('فقط عنوان لینک باشد', 'almasara-widgets'),
+            'type'        => Controls_Manager::SWITCHER,
+            'description' => __('وقتی کل کارت لینک است این گزینه اثری ندارد، چون لینک داخل لینک مارکاپ نامعتبری می‌سازد.', 'almasara-widgets'),
+            'condition'   => ['card_link!' => 'yes'],
+        ]);
+
+        $this->add_control('card_new_tab', [
+            'label' => __('باز شدن در تب جدید', 'almasara-widgets'),
+            'type'  => Controls_Manager::SWITCHER,
+        ]);
+
+        $this->add_control('heading_card_image', [
+            'label'     => __('تصویر', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('card_show_image', [
+            'label'   => __('نمایش تصویر شاخص', 'almasara-widgets'),
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+        ]);
+
+        $this->add_control('card_image_size', [
+            'label'     => __('اندازهٔ تصویر', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'woocommerce_thumbnail',
+            'options'   => $this->get_image_size_options(),
+            'condition' => ['card_show_image' => 'yes'],
+        ]);
+
+        $this->add_control('heading_card_title', [
+            'label'     => __('عنوان', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('card_show_title', [
+            'label'   => __('نمایش عنوان', 'almasara-widgets'),
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+        ]);
+
+        $this->add_control('card_title_tag', [
+            'label'     => __('تگ عنوان', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'h3',
+            'options'   => [
+                'h2'   => 'H2',
+                'h3'   => 'H3',
+                'h4'   => 'H4',
+                'h5'   => 'H5',
+                'h6'   => 'H6',
+                'div'  => 'div',
+                'span' => 'span',
+                'p'    => 'p',
+            ],
+            'condition' => ['card_show_title' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('card_title_lines', [
+            'label'       => __('حداکثر تعداد خط عنوان', 'almasara-widgets'),
+            'type'        => Controls_Manager::NUMBER,
+            'default'     => 2,
+            'min'         => 0,
+            'max'         => 10,
+            'description' => __('عنوان بلندتر با «...» کوتاه می‌شود. ۰ = بدون محدودیت. چون ارتفاع عنوان ثابت می‌ماند، کارت‌ها هم‌قد می‌مانند.', 'almasara-widgets'),
+            'condition'   => ['card_show_title' => 'yes'],
+            'selectors'   => ['{{WRAPPER}} .amw-card' => '--amw-card-title-lines: {{VALUE}};'],
+        ]);
+
+        $this->add_control('heading_card_price', [
+            'label'     => __('قیمت و شعار', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_control('card_show_slogan', [
+            'label'   => __('نمایش شعار', 'almasara-widgets'),
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+        ]);
+
+        $this->add_control('card_slogan', [
+            'label'       => __('متن شعار', 'almasara-widgets'),
+            'type'        => Controls_Manager::TEXT,
+            'default'     => __('کف قیمت ترب', 'almasara-widgets'),
+            'label_block' => true,
+            'condition'   => ['card_show_slogan' => 'yes'],
+        ]);
+
+        $this->add_control('card_show_price', [
+            'label'   => __('نمایش قیمت', 'almasara-widgets'),
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+        ]);
+
+        $this->add_control('card_price_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('قیمت نمایش‌داده‌شده همان مبلغی است که مشتری می‌پردازد: برای محصول متغیر کمترین قیمت، و برای محصول تخفیف‌خورده فقط قیمت نهایی (قیمت پیشین نمایش داده نمی‌شود).', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
+            'condition'       => ['card_show_price' => 'yes'],
+        ]);
+
+        $this->add_control('card_unit', [
+            'label'       => __('واحد پول', 'almasara-widgets'),
+            'type'        => Controls_Manager::TEXT,
+            'placeholder' => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : __('تومان', 'almasara-widgets'),
+            'description' => __('خالی = نماد پیش‌فرض ووکامرس.', 'almasara-widgets'),
+            'condition'   => ['card_show_price' => 'yes'],
+        ]);
+
+        $this->add_control('card_free_text', [
+            'label'       => __('متن «رایگان»', 'almasara-widgets'),
+            'type'        => Controls_Manager::TEXT,
+            'default'     => __('رایگان', 'almasara-widgets'),
+            'description' => __('وقتی قیمت صفر است به‌جای عدد نمایش داده می‌شود. برای نمایش خودِ صفر، خالی بگذارید.', 'almasara-widgets'),
+            'condition'   => ['card_show_price' => 'yes'],
         ]);
 
         $this->end_controls_section();
@@ -725,6 +883,484 @@ class Product_Section extends Widget_Base {
         $this->end_controls_section();
     }
 
+    /* ---------------- استایل: کارت داخلی ---------------- */
+
+    /**
+     * مجموعهٔ استایل «جعبه‌ای» یک حالت: پس‌زمینه، حاشیه، رادیوس، سایه، پدینگ.
+     * در همهٔ تب‌های عادی/هاورِ کارت تکرار می‌شود.
+     */
+    private function card_box_controls(string $prefix, string $selector, bool $with_padding = true): void {
+        $this->add_group_control(Group_Control_Background::get_type(), [
+            'name'     => $prefix . '_bg',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
+            'types'    => ['classic', 'gradient'],
+            'selector' => $selector,
+        ]);
+
+        $this->add_group_control(Group_Control_Border::get_type(), [
+            'name'     => $prefix . '_border',
+            'label'    => __('حاشیه', 'almasara-widgets'),
+            'selector' => $selector,
+        ]);
+
+        $this->add_responsive_control($prefix . '_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => [$selector => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Box_Shadow::get_type(), [
+            'name'     => $prefix . '_shadow',
+            'selector' => $selector,
+        ]);
+
+        if ($with_padding) {
+            $this->add_responsive_control($prefix . '_padding', [
+                'label'      => __('پدینگ', 'almasara-widgets'),
+                'type'       => Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'selectors'  => [$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+            ]);
+        }
+    }
+
+    /** مجموعهٔ استایل «متنی» یک حالت: تایپوگرافی، رنگ، سایهٔ متن، پدینگ، تراز */
+    private function card_text_controls(string $prefix, string $selector): void {
+        $this->add_group_control(Group_Control_Typography::get_type(), [
+            'name'     => $prefix . '_typo',
+            'label'    => __('تایپوگرافی', 'almasara-widgets'),
+            'selector' => $selector,
+        ]);
+
+        $this->add_control($prefix . '_color', [
+            'label'     => __('رنگ', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [$selector => 'color: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Text_Shadow::get_type(), [
+            'name'     => $prefix . '_tshadow',
+            'selector' => $selector,
+        ]);
+
+        $this->add_responsive_control($prefix . '_padding', [
+            'label'      => __('پدینگ', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => [$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_align', [
+            'label'     => __('ترازبندی', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => [
+                'start'  => ['title' => __('ابتدا', 'almasara-widgets'), 'icon' => 'eicon-text-align-right'],
+                'center' => ['title' => __('وسط', 'almasara-widgets'), 'icon' => 'eicon-text-align-center'],
+                'end'    => ['title' => __('انتها', 'almasara-widgets'), 'icon' => 'eicon-text-align-left'],
+            ],
+            'selectors' => [$selector => 'text-align: {{VALUE}};'],
+        ]);
+    }
+
+    /**
+     * «هاور» در همهٔ بخش‌های داخلی یعنی هاور روی خودِ کارت، نه روی آن بخش —
+     * پس سلکتور هاور همیشه از ریشهٔ .amw-card شروع می‌شود.
+     */
+    private function card_hover_selector(string $child = ''): string {
+        return '{{WRAPPER}} .amw-card:hover' . ('' === $child ? '' : ' ' . $child);
+    }
+
+    private function register_card_item_style_controls(): void {
+        $this->start_controls_section('section_style_card_item', [
+            'label'     => __('کارت: آیتم', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_STYLE,
+            'condition' => ['card_source' => 'builtin'],
+        ]);
+
+        $this->add_control('card_item_hover_note', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('در همهٔ بخش‌های کارت، «هاور» یعنی موس روی هر جای کارت باشد — نه فقط روی خودِ آن بخش.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
+        ]);
+
+        $this->add_responsive_control('card_item_transition', [
+            'label'      => __('مدت انیمیشن حالت هاور (ثانیه)', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['s'],
+            'range'      => ['s' => ['min' => 0, 'max' => 2, 'step' => 0.05]],
+            'default'    => ['size' => 0.25, 'unit' => 's'],
+            'selectors'  => ['{{WRAPPER}} .amw-card' => '--amw-card-transition: {{SIZE}}s;'],
+        ]);
+
+        $this->add_responsive_control('card_item_height', [
+            'label'       => __('ارتفاع کارت', 'almasara-widgets'),
+            'type'        => Controls_Manager::SLIDER,
+            'size_units'  => ['px', '%', 'vh'],
+            'range'       => ['px' => ['min' => 100, 'max' => 900]],
+            'description' => __('خالی = ارتفاع از محتوا. چون کارت‌ها کشیده می‌شوند، معمولاً لازم نیست.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-card' => 'height: {{SIZE}}{{UNIT}};'],
+        ]);
+
+        $this->start_controls_tabs('card_item_tabs');
+
+        $this->start_controls_tab('card_item_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->card_box_controls('card_item', '{{WRAPPER}} .amw-card');
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_item_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->card_box_controls('card_item_hover', $this->card_hover_selector());
+        $this->add_responsive_control('card_item_hover_move', [
+            'label'      => __('جابه‌جایی عمودی', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => -40, 'max' => 40]],
+            'selectors'  => [$this->card_hover_selector() => 'transform: translateY({{SIZE}}{{UNIT}});'],
+        ]);
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->add_control('heading_card_body', [
+            'label'     => __('بدنه (زیر تصویر)', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+
+        $this->add_full_flex_controls('card_body', '{{WRAPPER}} .amw-card__body', [
+            'direction' => 'column',
+            'align'     => 'stretch',
+        ]);
+
+        $this->add_responsive_control('card_body_padding', [
+            'label'      => __('پدینگ بدنه', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__body' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->end_controls_section();
+    }
+
+    private function register_card_image_style_controls(): void {
+        $this->start_controls_section('section_style_card_image', [
+            'label'     => __('کارت: تصویر', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_STYLE,
+            'condition' => ['card_source' => 'builtin', 'card_show_image' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('card_img_width', [
+            'label'      => __('عرض', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', '%'],
+            'default'    => ['size' => 100, 'unit' => '%'],
+            'range'      => ['px' => ['min' => 20, 'max' => 600]],
+            'selectors'  => ['{{WRAPPER}} .amw-card__img' => 'width: {{SIZE}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control('card_img_max_width', [
+            'label'      => __('حداکثر عرض', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', '%'],
+            'range'      => ['px' => ['min' => 20, 'max' => 800]],
+            'selectors'  => ['{{WRAPPER}} .amw-card__img' => 'max-width: {{SIZE}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control('card_img_height', [
+            'label'      => __('ارتفاع', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px', '%', 'vh'],
+            'range'      => ['px' => ['min' => 40, 'max' => 700]],
+            'selectors'  => ['{{WRAPPER}} .amw-card__img' => 'height: {{SIZE}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control('card_img_ratio', [
+            'label'       => __('نسبت ابعاد', 'almasara-widgets'),
+            'type'        => Controls_Manager::SELECT,
+            'default'     => '',
+            'options'     => [
+                ''      => __('پیش‌فرض (از خودِ تصویر)', 'almasara-widgets'),
+                '1/1'   => __('۱:۱ مربع', 'almasara-widgets'),
+                '4/3'   => '۴:۳',
+                '3/4'   => '۳:۴',
+                '16/9'  => '۱۶:۹',
+                '3/2'   => '۳:۲',
+                '2/3'   => '۲:۳',
+            ],
+            'description' => __('با تعیین نسبت، همهٔ تصویرها هم‌اندازه می‌شوند و کارت‌ها هم‌قد می‌مانند.', 'almasara-widgets'),
+            'selectors'   => ['{{WRAPPER}} .amw-card__img' => 'aspect-ratio: {{VALUE}};'],
+        ]);
+
+        $this->add_control('card_img_fit', [
+            'label'     => __('نحوهٔ جاگیری تصویر (object-fit)', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'cover',
+            'options'   => [
+                'cover'      => __('پوشاندن کامل (برش لبه‌ها)', 'almasara-widgets'),
+                'contain'    => __('جاشدن کامل (بدون برش)', 'almasara-widgets'),
+                'fill'       => __('کشیده‌شدن', 'almasara-widgets'),
+                'none'       => __('اندازهٔ اصلی', 'almasara-widgets'),
+                'scale-down' => __('کوچک‌شدن در صورت نیاز', 'almasara-widgets'),
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-card__img' => 'object-fit: {{VALUE}};'],
+        ]);
+
+        $this->add_control('card_img_position', [
+            'label'     => __('نقطهٔ تمرکز تصویر', 'almasara-widgets'),
+            'type'      => Controls_Manager::SELECT,
+            'default'   => 'center center',
+            'options'   => [
+                'center center' => __('وسط', 'almasara-widgets'),
+                'top center'    => __('بالا', 'almasara-widgets'),
+                'bottom center' => __('پایین', 'almasara-widgets'),
+                'center left'   => __('چپ', 'almasara-widgets'),
+                'center right'  => __('راست', 'almasara-widgets'),
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-card__img' => 'object-position: {{VALUE}};'],
+        ]);
+
+        $this->add_group_control(Group_Control_Border::get_type(), [
+            'name'      => 'card_img_border',
+            'label'     => __('حاشیه', 'almasara-widgets'),
+            'selector'  => '{{WRAPPER}} .amw-card__img',
+            'separator' => 'before',
+        ]);
+
+        $this->add_responsive_control('card_img_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__img' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control('card_media_padding', [
+            'label'      => __('پدینگ کادر تصویر', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__media' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->add_responsive_control('card_media_align', [
+            'label'     => __('ترازبندی افقی تصویر', 'almasara-widgets'),
+            'type'      => Controls_Manager::CHOOSE,
+            'options'   => [
+                'flex-start' => ['title' => __('ابتدا', 'almasara-widgets'), 'icon' => 'eicon-h-align-right'],
+                'center'     => ['title' => __('وسط', 'almasara-widgets'), 'icon' => 'eicon-h-align-center'],
+                'flex-end'   => ['title' => __('انتها', 'almasara-widgets'), 'icon' => 'eicon-h-align-left'],
+            ],
+            'selectors' => ['{{WRAPPER}} .amw-card__media' => 'justify-content: {{VALUE}};'],
+        ]);
+
+        $this->start_controls_tabs('card_img_tabs');
+
+        $this->start_controls_tab('card_img_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->card_image_state_controls('card_img', '{{WRAPPER}} .amw-card__img', 1, 1);
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_img_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->card_image_state_controls('card_img_hover', $this->card_hover_selector('.amw-card__img'), 1, 1.05);
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->end_controls_section();
+    }
+
+    /** شفافیت و مقیاس تصویر در یک حالت */
+    private function card_image_state_controls(string $prefix, string $selector, float $opacity, float $scale): void {
+        $this->add_responsive_control($prefix . '_opacity', [
+            'label'      => __('شفافیت', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0, 'max' => 1, 'step' => 0.01]],
+            'default'    => ['size' => $opacity],
+            'selectors'  => [$selector => 'opacity: {{SIZE}};'],
+        ]);
+
+        $this->add_responsive_control($prefix . '_scale', [
+            'label'      => __('مقیاس', 'almasara-widgets'),
+            'type'       => Controls_Manager::SLIDER,
+            'size_units' => ['px'],
+            'range'      => ['px' => ['min' => 0.5, 'max' => 2, 'step' => 0.01]],
+            'default'    => ['size' => $scale],
+            'selectors'  => [$selector => 'transform: scale({{SIZE}});'],
+        ]);
+
+        $this->add_group_control(Group_Control_Css_Filter::get_type(), [
+            'name'     => $prefix . '_filter',
+            'selector' => $selector,
+        ]);
+    }
+
+    private function register_card_title_style_controls(): void {
+        $this->start_controls_section('section_style_card_title', [
+            'label'     => __('کارت: عنوان', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_STYLE,
+            'condition' => ['card_source' => 'builtin', 'card_show_title' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('card_title_margin', [
+            'label'      => __('مارجین', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__title' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->start_controls_tabs('card_title_tabs');
+
+        $this->start_controls_tab('card_title_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->card_text_controls('card_title', '{{WRAPPER}} .amw-card__title');
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_title_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->card_text_controls('card_title_hover', $this->card_hover_selector('.amw-card__title'));
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->end_controls_section();
+    }
+
+    private function register_card_price_style_controls(): void {
+        $this->start_controls_section('section_style_card_price', [
+            'label'     => __('کارت: بخش قیمت', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_STYLE,
+            'condition' => ['card_source' => 'builtin'],
+        ]);
+
+        /* --- ۱) خودِ دیواید بخش قیمت --- */
+
+        $this->add_control('heading_card_pricerow', [
+            'label' => __('کادر بخش قیمت', 'almasara-widgets'),
+            'type'  => Controls_Manager::HEADING,
+        ]);
+
+        $this->add_full_flex_controls('card_pricerow', '{{WRAPPER}} .amw-card__price', [
+            'direction' => 'row',
+            'justify'   => 'space-between',
+            'align'     => 'center',
+            'wrap'      => 'wrap',
+        ]);
+
+        $this->add_responsive_control('card_pricerow_margin', [
+            'label'      => __('مارجین', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', 'em'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__price' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+        ]);
+
+        $this->start_controls_tabs('card_pricerow_tabs');
+
+        $this->start_controls_tab('card_pricerow_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->card_box_controls('card_pricerow', '{{WRAPPER}} .amw-card__price');
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_pricerow_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->card_box_controls('card_pricerow_hover', $this->card_hover_selector('.amw-card__price'));
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        /* --- ۲) شعار --- */
+
+        $this->add_control('heading_card_slogan', [
+            'label'     => __('شعار', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+            'condition' => ['card_show_slogan' => 'yes'],
+        ]);
+
+        $this->add_responsive_control('card_slogan_radius', [
+            'label'      => __('رادیوس', 'almasara-widgets'),
+            'type'       => Controls_Manager::DIMENSIONS,
+            'size_units' => ['px', '%'],
+            'selectors'  => ['{{WRAPPER}} .amw-card__slogan' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
+            'condition'  => ['card_show_slogan' => 'yes'],
+        ]);
+
+        $this->start_controls_tabs('card_slogan_tabs', ['condition' => ['card_show_slogan' => 'yes']]);
+
+        $this->start_controls_tab('card_slogan_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->card_text_controls('card_slogan', '{{WRAPPER}} .amw-card__slogan');
+        $this->add_group_control(Group_Control_Background::get_type(), [
+            'name'     => 'card_slogan_bg',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
+            'types'    => ['classic', 'gradient'],
+            'selector' => '{{WRAPPER}} .amw-card__slogan',
+        ]);
+        $this->add_group_control(Group_Control_Border::get_type(), [
+            'name'     => 'card_slogan_border',
+            'label'    => __('حاشیه', 'almasara-widgets'),
+            'selector' => '{{WRAPPER}} .amw-card__slogan',
+        ]);
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_slogan_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->card_text_controls('card_slogan_hover', $this->card_hover_selector('.amw-card__slogan'));
+        $this->add_group_control(Group_Control_Background::get_type(), [
+            'name'     => 'card_slogan_bg_hover',
+            'label'    => __('پس‌زمینه', 'almasara-widgets'),
+            'types'    => ['classic', 'gradient'],
+            'selector' => $this->card_hover_selector('.amw-card__slogan'),
+        ]);
+        $this->add_control('card_slogan_border_color_hover', [
+            'label'     => __('رنگ حاشیه', 'almasara-widgets'),
+            'type'      => Controls_Manager::COLOR,
+            'selectors' => [$this->card_hover_selector('.amw-card__slogan') => 'border-color: {{VALUE}};'],
+        ]);
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        /* --- ۳) قیمت: بستهٔ عدد+واحد، و هرکدام جداگانه --- */
+
+        $this->add_control('heading_card_amount', [
+            'label'     => __('قیمت', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+            'condition' => ['card_show_price' => 'yes'],
+        ]);
+
+        $this->add_full_flex_controls('card_amount', '{{WRAPPER}} .amw-card__amount', [
+            'direction' => 'row',
+            'align'     => 'baseline',
+        ]);
+
+        $this->start_controls_tabs('card_amount_tabs', ['condition' => ['card_show_price' => 'yes']]);
+
+        $this->start_controls_tab('card_amount_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
+        $this->add_control('heading_card_num_normal', [
+            'label' => __('عدد', 'almasara-widgets'),
+            'type'  => Controls_Manager::HEADING,
+        ]);
+        $this->card_text_controls('card_num', '{{WRAPPER}} .amw-card__num');
+        $this->add_control('heading_card_unit_normal', [
+            'label'     => __('واحد پول', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+        $this->card_text_controls('card_unit', '{{WRAPPER}} .amw-card__unit');
+        $this->end_controls_tab();
+
+        $this->start_controls_tab('card_amount_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
+        $this->add_control('heading_card_num_hover', [
+            'label' => __('عدد', 'almasara-widgets'),
+            'type'  => Controls_Manager::HEADING,
+        ]);
+        $this->card_text_controls('card_num_hover', $this->card_hover_selector('.amw-card__num'));
+        $this->add_control('heading_card_unit_hover', [
+            'label'     => __('واحد پول', 'almasara-widgets'),
+            'type'      => Controls_Manager::HEADING,
+            'separator' => 'before',
+        ]);
+        $this->card_text_controls('card_unit_hover', $this->card_hover_selector('.amw-card__unit'));
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->end_controls_section();
+    }
+
     /* ---------------- استایل: دکمه‌های قبلی/بعدی ---------------- */
 
     /**
@@ -936,6 +1572,17 @@ class Product_Section extends Widget_Base {
         return $options;
     }
 
+    /** اندازه‌های تصویر ثبت‌شده در سایت (شامل اندازه‌های خودِ ووکامرس) */
+    private function get_image_size_options(): array {
+        $options = [];
+        foreach (get_intermediate_image_sizes() as $size) {
+            $options[$size] = $size;
+        }
+        $options['full'] = __('اندازهٔ اصلی', 'almasara-widgets');
+
+        return $options;
+    }
+
     private function get_jetengine_listing_options(): array {
         $posts = get_posts([
             'post_type'      => 'jet-engine',
@@ -960,13 +1607,31 @@ class Product_Section extends Widget_Base {
 
         $listing_id = absint($settings['listing_id'] ?? 0);
         $is_editor  = \Elementor\Plugin::$instance->editor->is_edit_mode();
+        $source     = 'builtin' === ($settings['card_source'] ?? '') ? 'builtin' : 'jetengine';
 
-        if (!$listing_id) {
+        // فقط مسیر جت‌انجین به قالب Listing نیاز دارد
+        if ('jetengine' === $source && !$listing_id) {
             if ($is_editor) {
-                echo '<div class="amw-ps__notice">' . esc_html__('یک قالب Listing جت‌انجین برای کارت محصول انتخاب کنید.', 'almasara-widgets') . '</div>';
+                echo '<div class="amw-ps__notice">' . esc_html__('یک قالب Listing جت‌انجین برای کارت محصول انتخاب کنید، یا در همان بخش «کارت محصول از» را روی «کارت داخلی این افزونه» بگذارید.', 'almasara-widgets') . '</div>';
             }
             return;
         }
+
+        $card = [
+            'show_image'  => 'yes' === ($settings['card_show_image'] ?? 'yes'),
+            'show_title'  => 'yes' === ($settings['card_show_title'] ?? 'yes'),
+            'show_slogan' => 'yes' === ($settings['card_show_slogan'] ?? 'yes'),
+            'show_price'  => 'yes' === ($settings['card_show_price'] ?? 'yes'),
+            'link_card'   => 'yes' === ($settings['card_link'] ?? 'yes'),
+            'link_title'  => 'yes' === ($settings['card_link_title'] ?? ''),
+            'new_tab'     => 'yes' === ($settings['card_new_tab'] ?? ''),
+            'title_tag'   => (string) ($settings['card_title_tag'] ?? 'h3'),
+            'title_lines' => (int) ($settings['card_title_lines'] ?? 2),
+            'slogan'      => (string) ($settings['card_slogan'] ?? ''),
+            'unit'        => (string) ($settings['card_unit'] ?? ''),
+            'free_text'   => (string) ($settings['card_free_text'] ?? ''),
+            'image_size'  => (string) ($settings['card_image_size'] ?? 'woocommerce_thumbnail'),
+        ];
 
         $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
 
@@ -1040,6 +1705,8 @@ class Product_Section extends Widget_Base {
             'inStock'              => 'yes' === ($settings['filter_in_stock'] ?? ''),
             'hasImage'             => 'yes' === ($settings['filter_has_image'] ?? ''),
             'minPrice'             => max(0, (float) ($settings['filter_min_price'] ?? 0)),
+            'source'               => $source,
+            'card'                 => wp_json_encode($card),
         ];
 
         // حداقل قیمت بدون فیلتر «دارای قیمت» بی‌معناست
@@ -1069,6 +1736,8 @@ class Product_Section extends Widget_Base {
             'orderby'    => $cfg['orderby'],
             'order'      => $cfg['order'],
             'cache'      => $cfg['cache'],
+            'source'     => $source,
+            'card'       => $card,
         ] + $filters);
         echo $result['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- رندرشده از قالب Listing، محتوایش مسئولیت خودِ جت‌انجین است
 

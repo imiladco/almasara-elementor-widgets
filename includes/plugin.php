@@ -21,6 +21,7 @@ final class Plugin {
 
     private function __construct() {
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-extras.php';
+        require_once ALMASARA_WIDGETS_PATH . 'includes/product-card.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-section-ajax.php';
         Product_Section_Ajax::init();
 

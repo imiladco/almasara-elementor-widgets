@@ -55,6 +55,8 @@ final class Product_Section_Ajax {
             'in_stock'   => (bool) absint($request->get_param('in_stock')),
             'has_image'  => (bool) absint($request->get_param('has_image')),
             'min_price'  => (float) $request->get_param('min_price'),
+            'source'     => sanitize_key((string) $request->get_param('source')),
+            'card'       => Product_Card::sanitize_args((string) $request->get_param('card')),
         ]);
 
         $response = rest_ensure_response($result);
@@ -82,6 +84,8 @@ final class Product_Section_Ajax {
         $in_stock   = !empty($args['in_stock']);
         $has_image  = !empty($args['has_image']);
         $min_price  = $has_price ? max(0.0, (float) ($args['min_price'] ?? 0)) : 0.0;
+        $source     = 'builtin' === ($args['source'] ?? '') ? 'builtin' : 'jetengine';
+        $card       = Product_Card::sanitize_args($args['card'] ?? []);
 
         $allowed_orderby = ['date', 'title', 'price', 'popularity', 'rand', 'menu_order'];
         if (!in_array($orderby, $allowed_orderby, true)) {
@@ -95,7 +99,7 @@ final class Product_Section_Ajax {
         $cache_key = '';
         if ($use_cache) {
             $ver       = (int) get_option(self::CACHE_VERSION_OPTION, 0);
-            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order, $has_price, $in_stock, $has_image, $min_price]));
+            $cache_key = 'amw_ps_' . md5(wp_json_encode([$ver, $listing_id, $category, $count, $orderby, $order, $has_price, $in_stock, $has_image, $min_price, $source, $card]));
             $cached    = get_transient($cache_key);
             if (is_array($cached)) {
                 return $cached;
@@ -136,11 +140,21 @@ final class Product_Section_Ajax {
             remove_filter('posts_clauses', $lookup);
         }
 
-        $html = '';
+        $html  = '';
+        $index = 0;
         foreach ($query->posts as $post) {
-            // WP_Query خودش آبجکت پست را در کش گذاشته؛ مستقیم پاسش می‌دهیم
-            // تا render دوباره get_post صدا نزند.
-            $html .= '<div class="swiper-slide"><div class="amw-ps__card">' . self::render_jetengine_card($listing_id, $post) . '</div></div>';
+            if ('builtin' === $source) {
+                // چند کارت اول معمولاً بالای صفحه‌اند؛ lazy کردنشان فقط
+                // نمایش را عقب می‌اندازد
+                $inner = Product_Card::render($post, ['eager' => $index < 4] + $card);
+            } else {
+                // WP_Query خودش آبجکت پست را در کش گذاشته؛ مستقیم پاسش می‌دهیم
+                // تا render دوباره get_post صدا نزند.
+                $inner = self::render_jetengine_card($listing_id, $post);
+            }
+
+            $html .= '<div class="swiper-slide"><div class="amw-ps__card">' . $inner . '</div></div>';
+            $index++;
         }
 
         wp_reset_postdata();

@@ -1461,10 +1461,9 @@ button.amw-ps__pill.is-active {
 	padding: var(--amw-ps-shadow-room);
 }
 
+/* حالت بارگذاری را اسکلت‌ها نشان می‌دهند، پس محو کردن اسلایدر لازم نیست */
 .amw-ps.is-loading .amw-ps__slider {
-	opacity: .5;
 	pointer-events: none;
-	transition: opacity .2s ease;
 }
 
 .amw-ps__card {
@@ -1543,6 +1542,157 @@ button.amw-ps__btn.swiper-button-disabled {
 	gap: 6px;
 	margin-top: 16px;
 	width: auto;
+}
+
+/* ---------- کارت محصول داخلی ---------- */
+
+.amw-card {
+	--amw-card-title-lines: 2;
+	--amw-card-transition: .25s;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	color: inherit;
+	text-decoration: none;
+	transition:
+		background-color var(--amw-card-transition) ease,
+		border-color var(--amw-card-transition) ease,
+		box-shadow var(--amw-card-transition) ease,
+		transform var(--amw-card-transition) ease;
+}
+
+.amw-card__media {
+	display: flex;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.amw-card__img {
+	display: block;
+	width: 100%;
+	height: auto;
+	object-fit: cover;
+	transition:
+		opacity var(--amw-card-transition) ease,
+		transform var(--amw-card-transition) ease,
+		filter var(--amw-card-transition) ease;
+}
+
+.amw-card__body {
+	display: flex;
+	flex-direction: column;
+	/* بدنه فضای باقی‌مانده را می‌گیرد تا بخش قیمت همیشه ته کارت بنشیند و
+	   کارت‌های با عنوان کوتاه و بلند هم‌قد بمانند */
+	flex: 1 1 auto;
+	gap: 8px;
+}
+
+/*
+ * کوتاه‌کردن عنوان در N خط. line-clamp استاندارد هنوز فراگیر نیست، پس نسخهٔ
+ * ‎-webkit-‎ که سال‌هاست در همهٔ مرورگرهای مطرح کار می‌کند مبناست.
+ * مقدار ۰ («بدون محدودیت») عمداً کار می‌کند: صفر برای line-clamp نامعتبر است،
+ * مرورگر آن اعلان را کنار می‌گذارد و مقدار اولیه یعنی none برجا می‌ماند —
+ * یعنی هیچ برشی اعمال نمی‌شود، بدون نیاز به قاعدهٔ استثنای جداگانه.
+ */
+.amw-card__title {
+	margin: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: var(--amw-card-title-lines);
+	line-clamp: var(--amw-card-title-lines);
+	overflow: hidden;
+	transition: color var(--amw-card-transition) ease;
+}
+
+.amw-card__title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.amw-card__price {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	/* بخش قیمت به کف کارت چسبانده می‌شود */
+	margin-top: auto;
+}
+
+.amw-card__slogan {
+	display: inline-flex;
+	align-items: center;
+	transition: color var(--amw-card-transition) ease, background-color var(--amw-card-transition) ease;
+}
+
+.amw-card__amount {
+	display: inline-flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 4px;
+	white-space: nowrap;
+}
+
+.amw-card__num,
+.amw-card__unit {
+	transition: color var(--amw-card-transition) ease;
+}
+
+/* ---------- اسکلت بارگذاری ---------- */
+
+/*
+ * الگوی «skeleton screen»: به‌جای اسپینر، شبحی هم‌ابعادِ محتوای واقعی نشان
+ * داده می‌شود تا کاربر ساختار را ببیند و چیدمان هنگام رسیدن داده نپرد.
+ * درخشش با حرکت background-position ساخته می‌شود (نه تغییر عرض/چپ)، چون
+ * فقط روی لایهٔ compositing اجرا می‌شود و layout را دوباره محاسبه نمی‌کند.
+ */
+.amw-skeleton {
+	display: block;
+	border-radius: 6px;
+	background-color: #e9edf3;
+	background-image: linear-gradient(
+		90deg,
+		rgba(255, 255, 255, 0) 0%,
+		rgba(255, 255, 255, .65) 50%,
+		rgba(255, 255, 255, 0) 100%
+	);
+	background-repeat: no-repeat;
+	background-size: 200% 100%;
+	background-position: 180% 0;
+	animation: amw-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.amw-skeleton--media {
+	width: 100%;
+	aspect-ratio: 1 / 1;
+}
+
+.amw-skeleton--line {
+	height: 1em;
+}
+
+.amw-skeleton--short {
+	width: 60%;
+}
+
+.amw-skeleton--price {
+	width: 40%;
+	height: 1.4em;
+	margin-top: auto;
+}
+
+@keyframes amw-skeleton-shimmer {
+	from { background-position: 180% 0; }
+	to   { background-position: -80% 0; }
+}
+
+/* حرکت مداوم برای بخشی از کاربران آزاردهنده یا حال‌به‌هم‌زن است */
+@media (prefers-reduced-motion: reduce) {
+	.amw-skeleton {
+		animation: none;
+		background-image: none;
+	}
 }
 
 /* ---------- پیام ادیتور ---------- */

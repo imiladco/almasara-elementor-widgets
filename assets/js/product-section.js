@@ -67,6 +67,47 @@
 
 	function setLoading(root, on) {
 		root.classList.toggle('is-loading', on);
+		// aria-busy تنها راهی است که صفحه‌خوان بفهمد محتوا در حال تعویض است؛
+		// خودِ اسکلت‌ها aria-hidden هستند و خوانده نمی‌شوند.
+		if (on) {
+			root.setAttribute('aria-busy', 'true');
+		} else {
+			root.removeAttribute('aria-busy');
+		}
+	}
+
+	/**
+	 * اسکلت بارگذاری: به‌جای خالی‌کردن یا محوکردن اسلایدر، همان تعداد کارتِ
+	 * خاکستری با ابعاد واقعی گذاشته می‌شود تا ارتفاع بخش ثابت بماند و چیدمان
+	 * صفحه نپرد (CLS). مارکاپ اسکلت با کارت واقعی یکی است تا اندازه‌ها بخوانند.
+	 */
+	function showSkeletons(root, cfg) {
+		var wrapper = root.querySelector('.amw-ps__slider .swiper-wrapper');
+		if (!wrapper) {
+			return;
+		}
+
+		// به‌اندازهٔ کارت‌هایی که واقعاً دیده می‌شوند، نه کل تعداد کوئری
+		var visible = Math.ceil(parseFloat(cfg.slidesPerView) || 0) || wrapper.children.length || 4;
+		var count = Math.max(1, Math.min(visible + 1, parseInt(cfg.count, 10) || visible));
+
+		var slide = '<div class="swiper-slide"><div class="amw-ps__card">'
+			+ '<div class="amw-card amw-card--skeleton" aria-hidden="true">'
+			+ '<div class="amw-card__media"><span class="amw-skeleton amw-skeleton--media"></span></div>'
+			+ '<div class="amw-card__body">'
+			+ '<span class="amw-skeleton amw-skeleton--line"></span>'
+			+ '<span class="amw-skeleton amw-skeleton--line amw-skeleton--short"></span>'
+			+ '<span class="amw-skeleton amw-skeleton--line amw-skeleton--price"></span>'
+			+ '</div></div></div></div>';
+
+		wrapper.innerHTML = new Array(count + 1).join(slide);
+
+		// اسلایدهای تازه هنوز برای سوایپر ناشناخته‌اند و عرض نگرفته‌اند؛ بدون
+		// این، اسکلت‌ها تا رسیدن پاسخ بدقواره می‌مانند. observer هم همین کار را
+		// می‌کند ولی async است، این صریح و قطعی است.
+		if (root.__amwPsSwiper && !root.__amwPsSwiper.destroyed) {
+			root.__amwPsSwiper.update();
+		}
 	}
 
 	function filterByCategory(root, cfg, pill) {
@@ -98,21 +139,36 @@
 			has_price: cfg.hasPrice ? 1 : 0,
 			in_stock: cfg.inStock ? 1 : 0,
 			has_image: cfg.hasImage ? 1 : 0,
-			min_price: cfg.minPrice || 0
+			min_price: cfg.minPrice || 0,
+			source: cfg.source || 'jetengine',
+			card: cfg.card || ''
 		});
 
+		var wrapper = root.querySelector('.amw-ps__slider .swiper-wrapper');
+		// چون اسکلت جای محتوای فعلی را می‌گیرد، نسخهٔ قبلی نگه داشته می‌شود تا
+		// اگر درخواست شکست خورد، کاربر با اسکلتِ گیرکرده تنها نماند
+		var previous = wrapper ? wrapper.innerHTML : '';
+		var replaced = false;
+
 		setLoading(root, true);
+		showSkeletons(root, cfg);
+
 		fetch(cfg.restUrl + '?' + params.toString(), { credentials: 'same-origin' })
 			.then(function (r) { return r.json(); })
 			.then(function (data) {
-				var wrapper = root.querySelector('.amw-ps__slider .swiper-wrapper');
 				if (wrapper && data && typeof data.html === 'string') {
 					wrapper.innerHTML = data.html;
-					rebuildSwiper(root, cfg);
+					replaced = true;
 				}
 			})
 			.catch(function () { /* شبکه‌ای که موقتاً قطع است نباید UI را بشکند */ })
-			.then(function () { setLoading(root, false); });
+			.then(function () {
+				if (!replaced && wrapper) {
+					wrapper.innerHTML = previous;
+				}
+				rebuildSwiper(root, cfg);
+				setLoading(root, false);
+			});
 	}
 
 	function setup(root) {
