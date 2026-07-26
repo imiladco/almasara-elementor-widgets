@@ -352,6 +352,28 @@ final class Product_Section_Ajax {
     }
 
     /**
+     * آیا این شناسه واقعاً یک قالب Listing منتشرشده است؟
+     *
+     * حیاتی از نظر امنیتی: listing_id از یک endpoint عمومی و بدون احراز هویت
+     * می‌آید و مستقیم به get_builder_content_for_display (و در fallback به
+     * the_content) داده می‌شود. بدون این بررسی، هرکسی می‌توانست شناسهٔ هر
+     * نوشته‌ای — از جمله پیش‌نویس، خصوصی یا رمزدار — را بفرستد و محتوای
+     * رندرشده‌اش را بگیرد.
+     */
+    private static function is_renderable_listing(int $listing_id): bool {
+        if ($listing_id <= 0) {
+            return false;
+        }
+
+        $post = get_post($listing_id);
+
+        return $post instanceof \WP_Post
+            && 'jet-engine' === $post->post_type
+            && 'publish' === $post->post_status
+            && '' === $post->post_password;
+    }
+
+    /**
      * رندر یک آیتم از قالب Listing جت‌انجین برای یک محصول مشخص.
      *
      * ترکیب دو API پایدار و مستند: کانتکست‌دهی به ماکروهای جت‌انجین
@@ -369,7 +391,7 @@ final class Product_Section_Ajax {
      * دقیقاً همین‌جاست.
      */
     private static function render_jetengine_card(int $listing_id, \WP_Post $product): string {
-        if (!$listing_id) {
+        if (!self::is_renderable_listing($listing_id)) {
             return '';
         }
 

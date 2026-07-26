@@ -680,11 +680,28 @@ class Hero_Slider extends Widget_Base {
         // المنتور دسکتاپ‌محور است (پایه = دسکتاپ، override برای کوچک‌تر)؛ Swiper
         // موبایل‌محور است (پایه = کوچک‌ترین، breakpoints برای بزرگ‌تر). این تابع
         // مقادیر دسکتاپ/تبلت/موبایل المنتور را به ساختار breakpoints سوایپر می‌برد.
-        $responsive = static function (array $settings, string $key, $cast) {
+        //
+        // نکتهٔ مهم: المنتور مقدارِ تنظیم‌نشدهٔ یک کنترل ریسپانسیو را «رشتهٔ
+        // خالی» ذخیره می‌کند، نه null. پس ?? هرگز عمل نمی‌کرد و (int) ''
+        // برابر صفر می‌شد — یعنی فاصلهٔ اسلایدها و سرعت گذار روی تبلت و
+        // موبایل به‌زور صفر می‌شدند و مقدار دسکتاپ دور ریخته می‌شد.
+        // ترتیب ارث‌بری هم مثل خودِ CSS المنتور است: موبایل ← تبلت ← دسکتاپ.
+        $set = static function ($value) {
+            if (is_array($value)) {
+                return (isset($value['size']) && '' !== $value['size'] && null !== $value['size']) ? $value : null;
+            }
+            return ('' !== $value && null !== $value) ? $value : null;
+        };
+
+        $responsive = static function (array $settings, string $key, callable $cast) use ($set) {
+            $desktop = $set($settings[$key] ?? null);
+            $tablet  = $set($settings[$key . '_tablet'] ?? null) ?? $desktop;
+            $mobile  = $set($settings[$key . '_mobile'] ?? null) ?? $tablet;
+
             return [
-                'mobile'  => $cast($settings[$key . '_mobile'] ?? $settings[$key]),
-                'tablet'  => $cast($settings[$key . '_tablet'] ?? $settings[$key]),
-                'desktop' => $cast($settings[$key]),
+                'mobile'  => $cast($mobile),
+                'tablet'  => $cast($tablet),
+                'desktop' => $cast($desktop),
             ];
         };
         $to_int   = static fn($v) => (int) $v;
