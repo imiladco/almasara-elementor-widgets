@@ -222,6 +222,52 @@
 		instances.push({ root: root, swiper: swiper });
 	}
 
+	/*
+	 * صفِ انتظارِ کتابخانه.
+	 *
+	 * اسکریپت ویجت ممکن است پیش از خودِ Swiper اجرا شود. نسخهٔ قبلی برای هر
+	 * ریشه یک زنجیرهٔ requestAnimationFrame می‌ساخت و بعد از ۶۰ فریم — یعنی
+	 * حدوداً یک ثانیه — برای همیشه تسلیم می‌شد. در فرانت صفحه سبک است و
+	 * کتابخانه سر یکی دو فریم می‌رسد، ولی در آی‌فریمِ پیش‌نمایش ادیتور که
+	 * حجم زیادی JS لود می‌شود این مهلت راحت تمام می‌شد و اسلایدر هیچ‌وقت
+	 * بالا نمی‌آمد: کارت‌ها بدون عرض و بدون فاصله به هم می‌چسبیدند.
+	 *
+	 * حالا یک صف مشترک با بازهٔ زمانی واقعی (نه تعداد فریم) منتظر می‌ماند.
+	 */
+	var pending = [];
+	var poller = null;
+
+	function waitForSwiper(root) {
+		if (pending.indexOf(root) === -1) {
+			pending.push(root);
+		}
+		if (poller) {
+			return;
+		}
+
+		var waitedMs = 0;
+		poller = window.setInterval(function () {
+			waitedMs += 100;
+
+			if (window.Swiper) {
+				window.clearInterval(poller);
+				poller = null;
+				var queue = pending;
+				pending = [];
+				queue.forEach(setup);
+				return;
+			}
+
+			// ۲۰ ثانیه بیش از هر بارگذاری معقولی است؛ اگر تا اینجا نیامده
+			// یعنی اسکریپت واقعاً لود نشده و ادامهٔ نظرزدن بی‌فایده است
+			if (waitedMs >= 20000) {
+				window.clearInterval(poller);
+				poller = null;
+				pending = [];
+			}
+		}, 100);
+	}
+
 	function setup(root) {
 		if (root.__amwPs) {
 			return;
@@ -230,15 +276,10 @@
 			return;
 		}
 
-		// در ادیتور، اسکریپت ویجت ممکن است پیش از خودِ کتابخانه اجرا شود.
-		// اینجا عمداً علامت «مقداردهی شد» زده نمی‌شود تا بعداً دوباره تلاش
-		// شود؛ نسخهٔ قبلی زودتر علامت می‌زد و ویجت برای همیشه بی‌اسلایدر
-		// می‌ماند.
+		// عمداً علامت «مقداردهی شد» زده نمی‌شود تا وقتی کتابخانه رسید دوباره
+		// تلاش شود
 		if (!window.Swiper) {
-			root.__amwPsTries = (root.__amwPsTries || 0) + 1;
-			if (root.__amwPsTries < 60) {
-				window.requestAnimationFrame(function () { setup(root); });
-			}
+			waitForSwiper(root);
 			return;
 		}
 
@@ -296,10 +337,13 @@
 	 * المنتور آن‌قدر DOM را دستکاری می‌کند که رصد کل body — حتی throttle‌شده —
 	 * به یک پیمایش دائمی صفحه تبدیل می‌شد.
 	 */
-	if (window.MutationObserver && document.body && !isEditor()) {
+	if (window.MutationObserver && document.body) {
 		var queued = false;
 		var scan = function () {
-			if (queued) {
+			// isEditor() عمداً اینجا — نه موقع نصب — سنجیده می‌شود:
+			// هنگام اجرای این فایل، elementorFrontend معمولاً هنوز تعریف
+			// نشده، پس تصمیم‌گیری در آن لحظه با اطلاعات غلط انجام می‌شد.
+			if (queued || isEditor()) {
 				return;
 			}
 			queued = true;
