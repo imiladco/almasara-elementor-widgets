@@ -1606,8 +1606,14 @@ class Product_Section extends Widget_Base {
         $settings = $this->get_settings_for_display();
 
         $listing_id = absint($settings['listing_id'] ?? 0);
-        $is_editor  = \Elementor\Plugin::$instance->editor->is_edit_mode();
         $source     = 'builtin' === ($settings['card_source'] ?? '') ? 'builtin' : 'jetengine';
+
+        // محتوای ویجت داخل آی‌فریمِ پیش‌نمایش رندر می‌شود، جایی که is_edit_mode
+        // لزوماً true نیست — پس هر دو حالت بررسی می‌شوند، وگرنه ادیتور رفتار
+        // فرانت‌اند (از جمله کش) را می‌گرفت.
+        $preview   = \Elementor\Plugin::$instance->preview;
+        $is_editor = \Elementor\Plugin::$instance->editor->is_edit_mode()
+            || ($preview && $preview->is_preview_mode());
 
         // فقط مسیر جت‌انجین به قالب Listing نیاز دارد
         if ('jetengine' === $source && !$listing_id) {
@@ -1685,7 +1691,10 @@ class Product_Section extends Widget_Base {
             'count'                => max(1, (int) $settings['products_count']),
             'orderby'              => $settings['orderby'],
             'order'                => $settings['order'],
-            'cache'                => max(0, (int) ($settings['cache_minutes'] ?? 0)),
+            // در ادیتور هرگز کش نمی‌شود: وگرنه بعد از تغییر تنظیمات، خروجیِ
+            // ذخیره‌شدهٔ حالت قبلی نمایش داده می‌شد و پیش‌نمایش با چیزی که
+            // واقعاً منتشر می‌شود نمی‌خواند.
+            'cache'                => $is_editor ? 0 : max(0, (int) ($settings['cache_minutes'] ?? 0)),
             'speed'                => $speed['mobile'],
             'slidesPerView'        => $spv['mobile'],
             'spaceBetween'         => $space['mobile'],

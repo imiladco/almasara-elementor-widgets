@@ -12,7 +12,18 @@
 		}
 	}
 
+	/** آیا داخل پیش‌نمایش ادیتور المنتور هستیم؟ */
+	function isEditor() {
+		return !!(
+			window.elementorFrontend &&
+			typeof window.elementorFrontend.isEditMode === 'function' &&
+			window.elementorFrontend.isEditMode()
+		);
+	}
+
 	function buildOptions(cfg, root) {
+		var editing = isEditor();
+
 		var options = {
 			speed: cfg.speed || 600,
 			slidesPerView: cfg.slidesPerView || 1,
@@ -20,13 +31,17 @@
 			breakpoints: cfg.breakpoints || {},
 			rewind: !!cfg.rewind,
 			rtl: !!cfg.rtl,
-			// در ادیتور المنتور، ویجت اغلب وقتی ساخته می‌شود که هنوز پهنای
-			// واقعی ندارد (پنل باز/بسته می‌شود، تب عوض می‌شود، ویجت جابه‌جا
-			// می‌شود). بدون این‌ها سوایپر یک‌بار با عرض غلط اندازه می‌گیرد و
-			// همان‌طور خراب می‌ماند — علت «گاهی پیش‌نمایش به هم می‌ریزد».
+			// ویجت اغلب وقتی ساخته می‌شود که هنوز پهنای واقعی ندارد (پنل باز/
+			// بسته می‌شود، تب عوض می‌شود، ویجت جابه‌جا می‌شود). resizeObserver
+			// مکانیزم درست برای «کادر اندازه‌اش عوض شد» است و برخلاف رصد جهش‌های
+			// DOM هزینه‌ای روی هر تغییر بی‌ربط ندارد.
+			resizeObserver: true,
 			observer: true,
-			observeParents: true,
-			observeSlideChildren: true
+			// در ادیتور عمداً خاموش: المنتور مدام به والدها کلاس و اورلی و
+			// دستگیره اضافه/کم می‌کند و هر کدام یک update() شلیک می‌کند —
+			// همین رگبارِ به‌روزرسانی پیش‌نمایش را ناپایدار می‌کرد.
+			observeParents: !editing,
+			observeSlideChildren: !editing
 		};
 
 		if (cfg.autoplay) {
@@ -59,10 +74,11 @@
 
 	/** بعد از تعویض HTML اسلایدها، Swiper باید کامل بازسازی شود (تعداد اسلاید عوض شده) */
 	function rebuildSwiper(root, cfg) {
-		if (root.__amwPsSwiper) {
+		if (root.__amwPsSwiper && !root.__amwPsSwiper.destroyed) {
 			root.__amwPsSwiper.destroy(true, true);
 		}
 		root.__amwPsSwiper = createSwiper(root, cfg);
+		remember(root, root.__amwPsSwiper);
 	}
 
 	function setLoading(root, on) {
@@ -171,18 +187,67 @@
 			});
 	}
 
+	/*
+	 * دفتر نمونه‌های زنده.
+	 *
+	 * ادیتور المنتور با هر تغییرِ کنترلِ محتوا کل ویجت را دوباره رندر می‌کند،
+	 * یعنی نودِ .amw-ps قبلی از سند جدا می‌شود و یکی تازه جایش می‌آید. بدون
+	 * این دفتر، سوایپرِ نودِ قدیمی هیچ‌وقت destroy نمی‌شد و با observer و
+	 * resizeObserver خودش زنده می‌ماند؛ بعد از چند ویرایش ده‌ها نمونهٔ زامبی
+	 * هم‌زمان واکنش نشان می‌دادند و پیش‌نمایش را ناپایدار می‌کردند.
+	 */
+	var instances = [];
+
+	function reap() {
+		instances = instances.filter(function (entry) {
+			if (document.contains(entry.root)) {
+				return true;
+			}
+			if (entry.swiper && !entry.swiper.destroyed) {
+				// نود از سند جدا شده، پس پاک‌کردن استایل‌ها بی‌معناست؛ فقط
+				// شنونده‌ها و observerها باید رها شوند
+				try { entry.swiper.destroy(true, false); } catch (e) {}
+			}
+			return false;
+		});
+	}
+
+	function remember(root, swiper) {
+		if (!swiper) {
+			return;
+		}
+		// یک ریشه همیشه فقط یک ردیف دارد؛ بازسازی (مثلاً بعد از فیلتر دسته)
+		// نباید ردیف‌های مرده روی هم انباشته کند
+		instances = instances.filter(function (entry) { return entry.root !== root; });
+		instances.push({ root: root, swiper: swiper });
+	}
+
 	function setup(root) {
-		if (root.__amwPs || !window.Swiper) {
+		if (root.__amwPs) {
 			return;
 		}
 		if (!root.querySelector('.amw-ps__slider')) {
 			return;
 		}
+
+		// در ادیتور، اسکریپت ویجت ممکن است پیش از خودِ کتابخانه اجرا شود.
+		// اینجا عمداً علامت «مقداردهی شد» زده نمی‌شود تا بعداً دوباره تلاش
+		// شود؛ نسخهٔ قبلی زودتر علامت می‌زد و ویجت برای همیشه بی‌اسلایدر
+		// می‌ماند.
+		if (!window.Swiper) {
+			root.__amwPsTries = (root.__amwPsTries || 0) + 1;
+			if (root.__amwPsTries < 60) {
+				window.requestAnimationFrame(function () { setup(root); });
+			}
+			return;
+		}
+
 		root.__amwPs = true;
 
 		try {
 			var cfg = parseCfg(root);
 			root.__amwPsSwiper = createSwiper(root, cfg);
+			remember(root, root.__amwPsSwiper);
 
 			root.querySelectorAll('.amw-ps__pill').forEach(function (pill) {
 				pill.addEventListener('click', function () {
@@ -197,13 +262,24 @@
 	}
 
 	function initAll(scope) {
+		reap();
 		(scope || document).querySelectorAll('.amw-ps').forEach(setup);
 	}
 
-	if (window.elementorFrontend && window.elementorFrontend.hooks) {
+	function bindElementor() {
+		if (!window.elementorFrontend || !window.elementorFrontend.hooks) {
+			return false;
+		}
 		window.elementorFrontend.hooks.addAction('frontend/element_ready/almasara-product-section.default', function ($el) {
 			initAll($el && $el[0] ? $el[0] : document);
 		});
+		return true;
+	}
+
+	// در پیش‌نمایش ادیتور، اسکریپت ما معمولاً پیش از elementorFrontend اجرا
+	// می‌شود؛ آن‌وقت هوک هیچ‌وقت ثبت نمی‌شد و همه‌چیز به شبکهٔ ایمنی می‌افتاد.
+	if (!bindElementor()) {
+		window.addEventListener('elementor/frontend/init', bindElementor);
 	}
 
 	if (document.readyState !== 'loading') {
@@ -212,13 +288,15 @@
 		document.addEventListener('DOMContentLoaded', function () { initAll(document); });
 	}
 
-	// شبکه ایمنی: مثل ویجت اسلایدر هیرو، در برابر خطای افزونه‌های دیگر که
-	// ممکن است حلقه element_ready المنتور را متوقف کنند مقاوم می‌کند.
-	//
-	// حتماً throttle می‌شود: بدون آن، هر جهش DOM یک پیمایش کامل صفحه راه
-	// می‌انداخت — در ادیتور المنتور که مدام DOM را بازمی‌سازد، همین باعث
-	// کندی و به‌هم‌ریختن پیش‌نمایش می‌شد.
-	if (window.MutationObserver && document.body) {
+	/*
+	 * شبکه ایمنی برای فرانت‌اند: اگر افزونهٔ دیگری با خطای JS حلقهٔ
+	 * element_ready المنتور را نصفه بگذارد، ویجت باز هم بالا می‌آید.
+	 *
+	 * در ادیتور عمداً روشن نمی‌شود: آنجا element_ready قابل‌اتکاست و در عوض
+	 * المنتور آن‌قدر DOM را دستکاری می‌کند که رصد کل body — حتی throttle‌شده —
+	 * به یک پیمایش دائمی صفحه تبدیل می‌شد.
+	 */
+	if (window.MutationObserver && document.body && !isEditor()) {
 		var queued = false;
 		var scan = function () {
 			if (queued) {
