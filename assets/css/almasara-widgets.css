@@ -1554,6 +1554,10 @@ button.amw-ps__btn.swiper-button-disabled {
 	height: 100%;
 	color: inherit;
 	text-decoration: none;
+	/* تا تصویرِ لبه‌تا‌لبه رادیوسِ کارت را رعایت کند و گوشهٔ تیزش از کارت
+	   گرد بیرون نزند. سایهٔ خودِ کارت بیرون از کادر کشیده می‌شود و با این
+	   بریده نمی‌شود — فقط فرزندان مهار می‌شوند. */
+	overflow: hidden;
 	transition:
 		background-color var(--amw-card-transition) ease,
 		border-color var(--amw-card-transition) ease,

@@ -838,9 +838,15 @@ class Product_Section extends Widget_Base {
     /* ---------------- استایل: کارت (بسته‌بندی دور کارت جت‌انجین) ---------------- */
 
     private function register_card_style_controls(): void {
+        // فقط برای مسیر جت‌انجین. این بخش پوستهٔ بیرونی (.amw-ps__card) را
+        // استایل می‌دهد و دلیل وجودش این است که به قالب Listing دسترسی
+        // نداریم. برای کارت داخلی، بخش «کارت: آیتم» خودِ کارت را استایل
+        // می‌دهد؛ اگر هر دو باز بمانند، کاربر پس‌زمینه را روی یک المان و
+        // رادیوس را روی المان دیگر می‌گذارد و نتیجه بهم‌ریخته می‌شود.
         $this->start_controls_section('section_style_card', [
-            'label' => __('بسته‌بندی کارت', 'almasara-widgets'),
-            'tab'   => Controls_Manager::TAB_STYLE,
+            'label'     => __('بسته‌بندی کارت', 'almasara-widgets'),
+            'tab'       => Controls_Manager::TAB_STYLE,
+            'condition' => ['card_source' => 'jetengine'],
         ]);
 
         $this->add_control('card_note', [
@@ -925,8 +931,16 @@ class Product_Section extends Widget_Base {
         }
     }
 
-    /** مجموعهٔ استایل «متنی» یک حالت: تایپوگرافی، رنگ، سایهٔ متن، پدینگ، تراز */
-    private function card_text_controls(string $prefix, string $selector): void {
+    /**
+     * مجموعهٔ استایل «متنی» یک حالت: تایپوگرافی، رنگ، سایهٔ متن، پدینگ و
+     * (در صورت معنادار بودن) ترازبندی.
+     *
+     * $with_align برای شعار و عدد و واحد پول false است: آن‌ها آیتم‌های
+     * inline-flex داخل یک ردیف فلکس‌اند و text-align رویشان هیچ اثری ندارد؛
+     * جایگاه‌شان با کنترل‌های فلکسِ همان ردیف تعیین می‌شود. کنترلی که کاری
+     * نمی‌کند فقط این حس را می‌سازد که «پیش‌نمایش درست کار نمی‌کند».
+     */
+    private function card_text_controls(string $prefix, string $selector, bool $with_align = true): void {
         $this->add_group_control(Group_Control_Typography::get_type(), [
             'name'     => $prefix . '_typo',
             'label'    => __('تایپوگرافی', 'almasara-widgets'),
@@ -951,16 +965,18 @@ class Product_Section extends Widget_Base {
             'selectors'  => [$selector => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'],
         ]);
 
-        $this->add_responsive_control($prefix . '_align', [
-            'label'     => __('ترازبندی', 'almasara-widgets'),
-            'type'      => Controls_Manager::CHOOSE,
-            'options'   => [
-                'start'  => ['title' => __('ابتدا', 'almasara-widgets'), 'icon' => 'eicon-text-align-right'],
-                'center' => ['title' => __('وسط', 'almasara-widgets'), 'icon' => 'eicon-text-align-center'],
-                'end'    => ['title' => __('انتها', 'almasara-widgets'), 'icon' => 'eicon-text-align-left'],
-            ],
-            'selectors' => [$selector => 'text-align: {{VALUE}};'],
-        ]);
+        if ($with_align) {
+            $this->add_responsive_control($prefix . '_align', [
+                'label'     => __('ترازبندی', 'almasara-widgets'),
+                'type'      => Controls_Manager::CHOOSE,
+                'options'   => [
+                    'start'  => ['title' => __('ابتدا', 'almasara-widgets'), 'icon' => 'eicon-text-align-right'],
+                    'center' => ['title' => __('وسط', 'almasara-widgets'), 'icon' => 'eicon-text-align-center'],
+                    'end'    => ['title' => __('انتها', 'almasara-widgets'), 'icon' => 'eicon-text-align-left'],
+                ],
+                'selectors' => [$selector => 'text-align: {{VALUE}};'],
+            ]);
+        }
     }
 
     /**
@@ -1281,7 +1297,7 @@ class Product_Section extends Widget_Base {
         $this->start_controls_tabs('card_slogan_tabs', ['condition' => ['card_show_slogan' => 'yes']]);
 
         $this->start_controls_tab('card_slogan_tab_normal', ['label' => __('عادی', 'almasara-widgets')]);
-        $this->card_text_controls('card_slogan', '{{WRAPPER}} .amw-card__slogan');
+        $this->card_text_controls('card_slogan', '{{WRAPPER}} .amw-card__slogan', false);
         $this->add_group_control(Group_Control_Background::get_type(), [
             'name'     => 'card_slogan_bg',
             'label'    => __('پس‌زمینه', 'almasara-widgets'),
@@ -1296,7 +1312,7 @@ class Product_Section extends Widget_Base {
         $this->end_controls_tab();
 
         $this->start_controls_tab('card_slogan_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
-        $this->card_text_controls('card_slogan_hover', $this->card_hover_selector('.amw-card__slogan'));
+        $this->card_text_controls('card_slogan_hover', $this->card_hover_selector('.amw-card__slogan'), false);
         $this->add_group_control(Group_Control_Background::get_type(), [
             'name'     => 'card_slogan_bg_hover',
             'label'    => __('پس‌زمینه', 'almasara-widgets'),
@@ -1333,13 +1349,13 @@ class Product_Section extends Widget_Base {
             'label' => __('عدد', 'almasara-widgets'),
             'type'  => Controls_Manager::HEADING,
         ]);
-        $this->card_text_controls('card_num', '{{WRAPPER}} .amw-card__num');
+        $this->card_text_controls('card_num', '{{WRAPPER}} .amw-card__num', false);
         $this->add_control('heading_card_unit_normal', [
             'label'     => __('واحد پول', 'almasara-widgets'),
             'type'      => Controls_Manager::HEADING,
             'separator' => 'before',
         ]);
-        $this->card_text_controls('card_unit', '{{WRAPPER}} .amw-card__unit');
+        $this->card_text_controls('card_unit', '{{WRAPPER}} .amw-card__unit', false);
         $this->end_controls_tab();
 
         $this->start_controls_tab('card_amount_tab_hover', ['label' => __('هاور', 'almasara-widgets')]);
@@ -1347,13 +1363,13 @@ class Product_Section extends Widget_Base {
             'label' => __('عدد', 'almasara-widgets'),
             'type'  => Controls_Manager::HEADING,
         ]);
-        $this->card_text_controls('card_num_hover', $this->card_hover_selector('.amw-card__num'));
+        $this->card_text_controls('card_num_hover', $this->card_hover_selector('.amw-card__num'), false);
         $this->add_control('heading_card_unit_hover', [
             'label'     => __('واحد پول', 'almasara-widgets'),
             'type'      => Controls_Manager::HEADING,
             'separator' => 'before',
         ]);
-        $this->card_text_controls('card_unit_hover', $this->card_hover_selector('.amw-card__unit'));
+        $this->card_text_controls('card_unit_hover', $this->card_hover_selector('.amw-card__unit'), false);
         $this->end_controls_tab();
 
         $this->end_controls_tabs();
