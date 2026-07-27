@@ -64,12 +64,83 @@
 		return options;
 	}
 
+	/** عرض محتوای عنصر — دقیقاً همان چیزی که سوایپر برای خودش حساب می‌کند */
+	function contentWidth(el) {
+		var cs = window.getComputedStyle(el);
+
+		return el.clientWidth
+			- (parseFloat(cs.paddingLeft) || 0)
+			- (parseFloat(cs.paddingRight) || 0);
+	}
+
+	/*
+	 * دیده‌بان اندازه.
+	 *
+	 * سوایپر عرض را یک‌بار می‌سنجد و به‌صورت پیکسلی روی هر اسلاید می‌نشاند.
+	 * تا پیش از init، چیدمان از CSS و بر حسب درصد می‌آید و همیشه با عرض
+	 * واقعی جور است؛ از آن لحظه به بعد، همان عددِ ثابت حاکم است. پس اگر آن
+	 * یک اندازه‌گیری سرِ لحظهٔ نامناسبی افتاده باشد، خرابی دائمی می‌شود:
+	 * کارت‌ها باریک‌تر (یا پهن‌تر) از جای واقعی‌شان می‌مانند و نوار اسلایدر
+	 * با عرض بخش نمی‌خواند — یعنی دقیقاً «تا لود کامل درست بود، بعدش به هم
+	 * ریخت».
+	 *
+	 * روی سایت واقعی خیلی راحت پیش می‌آید: فونتی که دیر می‌رسد، اسکرول‌باری
+	 * که با کامل‌شدن صفحه ظاهر می‌شود، والدی که هنوز چیدمانش تمام نشده، یا
+	 * افزونهٔ بهینه‌سازی که اجرای همهٔ اسکریپت‌ها را تا اولین تعامل کاربر عقب
+	 * می‌اندازد و آن‌ها را وسط یک بازچینش سنگین اجرا می‌کند.
+	 *
+	 * observer و resizeObserver خودِ سوایپر اینجا کمکی نمی‌کنند: آن‌ها وقتی
+	 * شلیک می‌شوند که اندازه «عوض شود». اگر از همان اول غلط خوانده شده باشد
+	 * و بعد چیزی تغییر نکند، هیچ‌کدام بیدار نمی‌شوند.
+	 *
+	 * پس خودمان مقایسه می‌کنیم: عرض واقعی عنصر با عددی که سوایپر در ذهن
+	 * دارد. اختلاف بیش از یک پیکسل یعنی اندازه‌گیری کهنه است و update()
+	 * تازه‌اش می‌کند. بررسی‌ها محدود و ارزان‌اند.
+	 */
+	function watchSize(swiper) {
+		if (!swiper) {
+			return;
+		}
+
+		var timers = [];
+
+		var check = function () {
+			if (swiper.destroyed || !document.contains(swiper.el)) {
+				timers.forEach(window.clearTimeout);
+				return;
+			}
+
+			var real = contentWidth(swiper.el);
+
+			// عرض صفر یعنی عنصر هنوز نمایش داده نمی‌شود (تب بسته، والدِ
+			// display:none)؛ آنجا update() هم چیزی برای سنجیدن ندارد
+			if (real > 0 && Math.abs(real - swiper.size) > 1) {
+				swiper.update();
+			}
+		};
+
+		[0, 250, 750, 2000, 5000].forEach(function (delay) {
+			timers.push(window.setTimeout(check, delay));
+		});
+
+		// دو نقطهٔ قطعی که چیدمان در آن‌ها نهایی می‌شود
+		window.addEventListener('load', check, { once: true });
+
+		if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+			document.fonts.ready.then(check).catch(function () { /* بی‌اهمیت */ });
+		}
+	}
+
 	function createSwiper(root, cfg) {
 		var swiperEl = root.querySelector('.amw-ps__slider');
 		if (!swiperEl || !window.Swiper) {
 			return null;
 		}
-		return new window.Swiper(swiperEl, buildOptions(cfg, root));
+
+		var swiper = new window.Swiper(swiperEl, buildOptions(cfg, root));
+		watchSize(swiper);
+
+		return swiper;
 	}
 
 	/** بعد از تعویض HTML اسلایدها، Swiper باید کامل بازسازی شود (تعداد اسلاید عوض شده) */

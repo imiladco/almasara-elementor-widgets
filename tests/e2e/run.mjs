@@ -11,8 +11,8 @@
  *   WP_ROOT=/tmp/wpint/wp node tests/e2e/run.mjs
  */
 
-import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const WP_ROOT = process.env.WP_ROOT;
@@ -57,6 +57,35 @@ function ok(label, condition, detail = '') {
 
 function group(name) {
 	console.log(`\n\x1b[1m${name}\x1b[0m`);
+}
+
+/* -------------------------------------------------------------------------
+ * همگام‌سازی افزونه با پوشهٔ کاری
+ * ---------------------------------------------------------------------- */
+
+/*
+ * صفحه، افزونه را از wp-content/plugins می‌خواند نه از پوشهٔ کاری. آن کپی را
+ * setup.sh یک‌بار می‌سازد، پس هر ویرایشی بعد از آن برای مرورگر نامرئی است و
+ * تست بی‌صدا نسخهٔ کهنه را سبز اعلام می‌کند — همان چیزی که یک‌بار سرِ
+ * تست‌های یکپارچه اتفاق افتاد.
+ *
+ * پس هر اجرا اول کپی را تازه می‌کند. کش المنتور هم پاک می‌شود، وگرنه HTML
+ * ساخته‌شدهٔ قبلی سرو می‌شود.
+ */
+const PLUGIN_SRC = join(import.meta.dirname, '..', '..');
+const PLUGIN_DEST = join(WP_ROOT, 'wp-content', 'plugins', 'almasara-elementor-widgets');
+
+if (existsSync(PLUGIN_DEST)) {
+	for (const dir of ['assets', 'includes']) {
+		rmSync(join(PLUGIN_DEST, dir), { recursive: true, force: true });
+		cpSync(join(PLUGIN_SRC, dir), join(PLUGIN_DEST, dir), { recursive: true });
+	}
+	for (const file of readdirSync(PLUGIN_SRC).filter((f) => f.endsWith('.php'))) {
+		cpSync(join(PLUGIN_SRC, file), join(PLUGIN_DEST, file));
+	}
+
+	spawnSync('php', ['-r', `require '${WP_ROOT}/wp-load.php';`
+		+ ' \\Elementor\\Plugin::$instance->files_manager->clear_cache();'], { stdio: 'ignore' });
 }
 
 /* -------------------------------------------------------------------------
@@ -163,6 +192,58 @@ try {
 		'هیچ کارتی تمام‌عرض ویجت نیست',
 		layout.widestRatio < 0.5,
 		`نسبت پهن‌ترین کارت به اسلایدر: ${layout.widestRatio.toFixed(2)}`
+	);
+
+	/*
+	 * سنجشِ همان چیزی که کاربر گزارش کرد: «تا لود کامل چیدمان درست بود، بعدش
+	 * به هم ریخت».
+	 *
+	 * پیش از init، عرض کارت‌ها از CSS و بر حسب درصد می‌آید و همیشه با عرض
+	 * واقعی جور است. بعد از init، عددِ پیکسلیِ سوایپر حاکم می‌شود. اگر آن یک
+	 * اندازه‌گیری غلط افتاده باشد، این دو از هم جدا می‌افتند و خرابی دائمی
+	 * می‌شود. پس هر دو ثابت را می‌سنجیم: اندازهٔ سوایپر با عرض واقعیِ عنصر
+	 * بخواند، و نوارِ کارت‌های دیده‌شده هم‌عرضِ خودِ اسلایدر باشد.
+	 */
+	group('اندازه‌گیری سوایپر با عرض واقعی می‌خواند');
+
+	const sizing = await page.evaluate(() => {
+		const root = document.querySelector('.amw-ps');
+		const slider = root.querySelector('.amw-ps__slider');
+		const cs = getComputedStyle(slider);
+		const real = slider.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+		const swiper = root.__amwPsSwiper;
+		const slides = [...slider.querySelectorAll('.swiper-slide')];
+		const spv = parseFloat(getComputedStyle(root).getPropertyValue('--amw-ps-spv')) || 4;
+		const gap = parseFloat(getComputedStyle(root).getPropertyValue('--amw-ps-gap')) || 20;
+
+		return {
+			real,
+			measured: swiper ? swiper.size : null,
+			slideWidth: slides[0].getBoundingClientRect().width,
+			// همان فرمولی که CSS پیش از init به کار می‌برد
+			expected: (real - (spv - 1) * gap) / spv,
+			paddingTop: cs.paddingTop,
+			marginTop: cs.marginTop,
+		};
+	});
+
+	ok(
+		'اندازهٔ سوایپر با عرض واقعی عنصر یکی است',
+		Math.abs(sizing.real - sizing.measured) <= 1,
+		`واقعی ${sizing.real} ≠ سوایپر ${sizing.measured}`
+	);
+	ok(
+		'عرض کارت بعد از init همان چیزی است که CSS پیش از init می‌داد',
+		Math.abs(sizing.slideWidth - sizing.expected) <= 1,
+		`بعد ${sizing.slideWidth.toFixed(2)} ≠ قبل ${sizing.expected.toFixed(2)}`
+	);
+	// پدینگِ محافظِ سایه نباید قربانیِ ترتیب بارگذاری شیت‌ها شود؛ اگر
+	// «.swiper { padding: 0 }» برنده شود، مارجین منفیِ نامتقارن می‌ماند و
+	// اسلایدر ۲۴ پیکسل بالا کشیده می‌شود
+	ok(
+		'فضای محافظ سایه سرِ جایش است',
+		parseFloat(sizing.paddingTop) === -parseFloat(sizing.marginTop),
+		`padding ${sizing.paddingTop} / margin ${sizing.marginTop}`
 	);
 
 	group('حرکت اسلایدر');
