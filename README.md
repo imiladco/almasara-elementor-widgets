@@ -137,6 +137,11 @@ php tests/run.php svg      # فقط یک گروه
 bash tests/integration/setup.sh /tmp/wpint
 WP_ROOT=/tmp/wpint/wp php tests/integration/run.php
 
+# تست مرورگری (المنتور + صفحهٔ واقعی + Chromium)
+bash tests/e2e/setup.sh /tmp/wpint
+npm i -D playwright && npx playwright install chromium
+WP_ROOT=/tmp/wpint/wp node tests/e2e/run.mjs
+
 find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 npx eslint assets/js -c eslint.config.mjs
 phpcs                      # با phpcs.xml.dist
@@ -150,6 +155,10 @@ CI روی هر push و pull request همین‌ها را اجرا می‌کند
 **واحد** (`tests/`) — بدون وردپرس، منطق خالص: پاک‌سازی SVG، حل مقادیر
 ریسپانسیو، اعتبارسنجی تنظیمات، محدودیت دستهٔ REST، و پایداری فهرست
 کنترل‌ها.
+
+**مرورگری** (`tests/e2e/`) — صفحهٔ واقعی المنتور در Chromium: عرض کارت‌ها،
+حرکت واقعی اسلایدر با کلیک، دو ویجت در یک صفحه، چیدمان بدون جاوااسکریپت، و
+حالتی که سوایپر کلاس خودش را می‌گذارد ولی اندازه‌گذاری نمی‌کند.
 
 **یکپارچه** (`tests/integration/`) — روی وردپرس و ووکامرس واقعی، چیزهایی
 که فقط با دیتابیس معنا دارند: نمایانی کاتالوگ، هر چهار فیلتر، تکراری‌نشدن
@@ -171,7 +180,7 @@ CI روی هر push و pull request همین‌ها را اجرا می‌کند
 
 ## آنچه هنوز پوشش داده نشده
 
-- تست E2E مرورگری (Playwright) برای اسلایدر، مودال و ویرایشگر المنتور نیست.
+- تست مرورگری فقط ویجت بخش محصولات را پوشش می‌دهد؛ مودال‌ها و ویرایشگر المنتور هنوز E2E ندارند.
 - تست یکپارچه روی SQLite اجرا می‌شود، نه MySQL. برای منطق افزونه کافی است،
   ولی تفاوت‌های رفتاری خاص MySQL را نمی‌گیرد.
 - المنتور در تست یکپارچه نصب نمی‌شود؛ منطق ویجت‌ها با یک استاب کمینه

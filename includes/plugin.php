@@ -10,6 +10,9 @@ if (!defined('ABSPATH')) {
  */
 final class Plugin {
 
+    /** نسخه‌ای که آخرین بار روی این سایت اجرا شده */
+    const VERSION_OPTION = 'amw_installed_version';
+
     private static $instance = null;
 
     public static function instance(): Plugin {
@@ -29,12 +32,44 @@ final class Plugin {
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-section/rest.php';
         Product_Section\Rest::init();
 
+        add_action('init', [$this, 'maybe_flush_after_update'], 20);
+
         add_action('elementor/elements/categories_registered', [$this, 'register_category']);
         add_action('elementor/widgets/register', [$this, 'register_widgets']);
         add_action('elementor/frontend/after_register_styles', [$this, 'register_styles']);
         add_action('elementor/frontend/after_register_scripts', [$this, 'register_scripts']);
         add_action('elementor/editor/after_enqueue_styles', [$this, 'enqueue_editor_styles']);
         add_action('rest_api_init', [$this, 'register_rest_routes']);
+    }
+
+    /**
+     * بعد از هر به‌روزرسانی افزونه، خروجی‌های کش‌شدهٔ المنتور را دور می‌ریزد.
+     *
+     * چرا لازم است: المنتور CSS و محتوای رندرشدهٔ هر صفحه را در فایل و
+     * ترنزینت نگه می‌دارد و خودش نمی‌داند افزونهٔ ما عوض شده. وقتی نسخهٔ
+     * جدید سلکتور، متغیر CSS یا مارکاپ را تغییر می‌دهد، سایت همچنان نسخهٔ
+     * قدیمی را سرو می‌کند — و نتیجه‌اش ترکیبی از CSS تازه و HTML کهنه است
+     * که می‌تواند چیدمان را کاملاً بشکند.
+     *
+     * دقیقاً همین حالت در تست مرورگری بازتولید شد: صفحه بعد از تغییر
+     * ویجت، تا وقتی کش المنتور دستی پاک نشد، خروجی قبلی را نشان می‌داد.
+     *
+     * فقط وقتی نسخه واقعاً عوض شده باشد اجرا می‌شود، پس روی بارگذاری‌های
+     * عادی هیچ هزینه‌ای ندارد.
+     */
+    public function maybe_flush_after_update(): void {
+        if (get_option(self::VERSION_OPTION) === ALMASARA_WIDGETS_VERSION) {
+            return;
+        }
+
+        update_option(self::VERSION_OPTION, ALMASARA_WIDGETS_VERSION, false);
+
+        if (class_exists('\Elementor\Plugin') && isset(\Elementor\Plugin::$instance->files_manager)) {
+            \Elementor\Plugin::$instance->files_manager->clear_cache();
+        }
+
+        // خروجی HTML کارت‌های خودمان هم ممکن است با مارکاپ قدیمی ساخته شده باشد
+        Product_Section\Query::bump_cache_version();
     }
 
     /**

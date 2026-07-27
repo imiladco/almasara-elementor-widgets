@@ -57,6 +57,34 @@ jobs:
       - name: اجرای تست‌های یکپارچه
         run: WP_ROOT="$RUNNER_TEMP/wpint/wp" php tests/integration/run.php
 
+  e2e:
+    name: مرورگری (المنتور + ووکامرس)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, libxml, mbstring, sqlite3, pdo_sqlite, gd, zip
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: نصب وردپرس، ووکامرس و المنتور
+        run: |
+          bash tests/integration/setup.sh "$RUNNER_TEMP/wpint"
+          bash tests/e2e/setup.sh "$RUNNER_TEMP/wpint"
+
+      - name: نصب مرورگر
+        run: npm i -D playwright && npx playwright install --with-deps chromium
+
+      - name: اجرای تست مرورگری
+        run: WP_ROOT="$RUNNER_TEMP/wpint/wp" node tests/e2e/run.mjs
+
   javascript:
     name: JavaScript
     runs-on: ubuntu-latest
