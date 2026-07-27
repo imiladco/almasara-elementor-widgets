@@ -978,6 +978,19 @@ body.amw-pg-noscroll {
 	color: #f6b40e;
 }
 
+/*
+ * تلهٔ ربات فرم دیدگاه. عمداً display:none نیست — بعضی ربات‌ها فیلدهای
+ * مخفی را نادیده می‌گیرند. به‌جایش از جریان خارج و از دید پنهان می‌شود.
+ */
+.amw-rv-form__trap {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
 /* ---------- مودال ثبت دیدگاه ---------- */
 
 .amw-rv-modal {

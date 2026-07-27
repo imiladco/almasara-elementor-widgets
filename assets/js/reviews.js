@@ -121,6 +121,7 @@
 			var anonymous = form.querySelector('input[name="amw_anonymous"]');
 			var author = form.querySelector('input[name="amw_author"]');
 			var email = form.querySelector('input[name="amw_email"]');
+			var trap = form.querySelector('input[name="amw_website"]');
 
 			message.textContent = '';
 			message.classList.remove('is-error', 'is-success');
@@ -149,7 +150,9 @@
 					recommend: recommend ? recommend.value : '',
 					anonymous: !!(anonymous && anonymous.checked),
 					author: author ? author.value : '',
-					email: email ? email.value : ''
+					email: email ? email.value : '',
+					// تلهٔ ربات — کاربر واقعی همیشه خالی می‌فرستدش
+					website: trap ? trap.value : ''
 				})
 			})
 				.then(function (res) {

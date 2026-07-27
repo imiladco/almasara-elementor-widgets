@@ -119,9 +119,49 @@ final class Product_Extras {
         ]);
     }
 
+    private static function client_ip(): string {
+        return isset($_SERVER['REMOTE_ADDR'])
+            ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']))
+            : '';
+    }
+
+    /**
+     * سقف ارسال دیدگاه برای هر IP.
+     *
+     * سیل‌بندی خودِ وردپرس داخل wp_new_comment هست، ولی فقط بعد از اعتبارسنجی
+     * کامل عمل می‌کند. این بررسی پیش از هر کوئری‌ای انجام می‌شود، پس هزینهٔ
+     * درخواست‌های پشت‌سرهم را از همان ابتدا می‌بندد.
+     */
+    private static function review_rate_limited(): bool {
+        $ip = self::client_ip();
+        if ('' === $ip) {
+            return false;
+        }
+
+        $key   = 'amw_rv_rl_' . md5($ip);
+        $count = (int) get_transient($key);
+
+        if ($count >= 5) {
+            return true;
+        }
+
+        set_transient($key, $count + 1, 5 * MINUTE_IN_SECONDS);
+
+        return false;
+    }
+
     public static function submit_review(\WP_REST_Request $request) {
         if (!function_exists('wc_get_product')) {
             return new \WP_Error('woocommerce_missing', __('ووکامرس فعال نیست.', 'almasara-widgets'), ['status' => 500]);
+        }
+
+        // تلهٔ ربات: فیلدی که در فرم پنهان است و کاربر واقعی هرگز پرش نمی‌کند
+        if ('' !== trim((string) $request->get_param('website'))) {
+            return new \WP_Error('spam_detected', __('ارسال ناموفق بود.', 'almasara-widgets'), ['status' => 400]);
+        }
+
+        if (self::review_rate_limited()) {
+            return new \WP_Error('too_many_requests', __('کمی صبر کنید و دوباره تلاش کنید.', 'almasara-widgets'), ['status' => 429]);
         }
 
         $product = wc_get_product(absint($request->get_param('product_id')));
@@ -133,7 +173,31 @@ final class Product_Extras {
             return new \WP_Error('login_required', __('برای ثبت دیدگاه ابتدا وارد حساب کاربری شوید.', 'almasara-widgets'), ['status' => 401]);
         }
 
-        $rating  = min(5, max(1, absint($request->get_param('rating'))));
+        // همان قاعده‌ای که خودِ ووکامرس در فرم استانداردش اعمال می‌کند: اگر
+        // «فقط خریداران» فعال باشد، فقط مالک تاییدشدهٔ محصول اجازه دارد
+        if ('yes' === get_option('woocommerce_review_verification_required')
+            && function_exists('wc_customer_bought_product')
+        ) {
+            $user  = wp_get_current_user();
+            $email = $user->exists() ? $user->user_email : sanitize_email((string) $request->get_param('email'));
+
+            if (!wc_customer_bought_product($email, (int) $user->ID, $product->get_id())) {
+                return new \WP_Error(
+                    'purchase_required',
+                    __('فقط خریداران این محصول می‌توانند دیدگاه ثبت کنند.', 'almasara-widgets'),
+                    ['status' => 403]
+                );
+            }
+        }
+
+        $rating = min(5, max(0, absint($request->get_param('rating'))));
+
+        // امتیاز اجباری، مطابق تنظیم خودِ ووکامرس
+        $ratings_enabled = !function_exists('wc_review_ratings_enabled') || wc_review_ratings_enabled();
+        if ($ratings_enabled && 'yes' === get_option('woocommerce_review_rating_required') && $rating < 1) {
+            return new \WP_Error('rating_required', __('امتیاز دادن الزامی است.', 'almasara-widgets'), ['status' => 400]);
+        }
+
         $content = sanitize_textarea_field((string) $request->get_param('comment'));
         if ('' === trim($content)) {
             return new \WP_Error('empty_comment', __('متن دیدگاه را بنویسید.', 'almasara-widgets'), ['status' => 400]);
@@ -167,6 +231,9 @@ final class Product_Extras {
             }
         }
 
+        // IP و User Agent صریحاً پاس داده می‌شوند: کنترل سیل‌بندی خودِ وردپرس،
+        // آکیسمت و افزونه‌های ضداسپم به همین دو تکیه می‌کنند و بدون آن‌ها
+        // عملاً کور می‌مانند.
         $comment_id = wp_new_comment([
             'comment_post_ID'      => $product->get_id(),
             'comment_content'      => $content,
@@ -175,6 +242,10 @@ final class Product_Extras {
             'comment_author'       => $author,
             'comment_author_email' => $email,
             'comment_author_url'   => '',
+            'comment_author_IP'    => self::client_ip(),
+            'comment_agent'        => isset($_SERVER['HTTP_USER_AGENT'])
+                ? substr(sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])), 0, 254)
+                : '',
             'user_id'              => $user->exists() ? $user->ID : 0,
         ], true);
 
@@ -182,7 +253,9 @@ final class Product_Extras {
             return $comment_id;
         }
 
-        add_comment_meta($comment_id, 'rating', $rating);
+        if ($rating > 0) {
+            add_comment_meta($comment_id, 'rating', $rating);
+        }
         if ($pros) {
             add_comment_meta($comment_id, '_amw_pros', $pros);
         }

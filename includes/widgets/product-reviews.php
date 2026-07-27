@@ -567,6 +567,23 @@ class Product_Reviews extends Widget_Base {
                     </div>
                 <?php else : ?>
                     <form class="amw-rv-form" novalidate>
+                        <?php
+                        /*
+                         * تلهٔ ربات. از دید کاربر و صفحه‌خوان پنهان است
+                         * (aria-hidden و tabindex منفی) ولی ربات‌هایی که
+                         * کورکورانه همهٔ ورودی‌ها را پر می‌کنند در آن
+                         * می‌افتند؛ سرور هر درخواستِ پرشده را رد می‌کند.
+                         * عمداً display:none نیست، چون بعضی ربات‌ها فیلدهای
+                         * مخفی را رد می‌کنند.
+                         */
+                        ?>
+                        <div class="amw-rv-form__trap" aria-hidden="true">
+                            <label>
+                                <?php esc_html_e('این فیلد را خالی بگذارید', 'almasara-widgets'); ?>
+                                <input type="text" name="amw_website" tabindex="-1" autocomplete="off" />
+                            </label>
+                        </div>
+
                         <p class="amw-rv-form__label amw-rv-form__label--center"><?php esc_html_e('به این کالا امتیاز دهید :)', 'almasara-widgets'); ?> <b>*</b></p>
                         <div class="amw-rv-form__emoji" role="radiogroup" aria-label="<?php echo esc_attr__('امتیاز', 'almasara-widgets'); ?>">
                             <?php
