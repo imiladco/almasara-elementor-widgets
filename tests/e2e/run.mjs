@@ -206,8 +206,9 @@ try {
 	 */
 	group('اندازه‌گیری سوایپر با عرض واقعی می‌خواند');
 
-	const sizing = await page.evaluate(() => {
-		const root = document.querySelector('.amw-ps');
+	// هر دو ویجت سنجیده می‌شوند: دومی عمداً با مقدارِ خالیِ دسکتاپ ذخیره شده
+	// (همان پیکربندی‌ای که روی سایت واقعی اسلایدر را از کار انداخته بود)
+	const sizing = await page.evaluate(() => [...document.querySelectorAll('.amw-ps')].map((root) => {
 		const slider = root.querySelector('.amw-ps__slider');
 		const cs = getComputedStyle(slider);
 		const real = slider.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
@@ -224,27 +225,43 @@ try {
 			expected: (real - (spv - 1) * gap) / spv,
 			paddingTop: cs.paddingTop,
 			marginTop: cs.marginTop,
+			cssPerView: spv,
+			swiperPerView: swiper ? swiper.params.slidesPerView : null,
 		};
-	});
+	}));
 
-	ok(
-		'اندازهٔ سوایپر با عرض واقعی عنصر یکی است',
-		Math.abs(sizing.real - sizing.measured) <= 1,
-		`واقعی ${sizing.real} ≠ سوایپر ${sizing.measured}`
-	);
-	ok(
-		'عرض کارت بعد از init همان چیزی است که CSS پیش از init می‌داد',
-		Math.abs(sizing.slideWidth - sizing.expected) <= 1,
-		`بعد ${sizing.slideWidth.toFixed(2)} ≠ قبل ${sizing.expected.toFixed(2)}`
-	);
-	// پدینگِ محافظِ سایه نباید قربانیِ ترتیب بارگذاری شیت‌ها شود؛ اگر
-	// «.swiper { padding: 0 }» برنده شود، مارجین منفیِ نامتقارن می‌ماند و
-	// اسلایدر ۲۴ پیکسل بالا کشیده می‌شود
-	ok(
-		'فضای محافظ سایه سرِ جایش است',
-		parseFloat(sizing.paddingTop) === -parseFloat(sizing.marginTop),
-		`padding ${sizing.paddingTop} / margin ${sizing.marginTop}`
-	);
+	sizing.forEach((s, i) => {
+		const w = `ویجت ${i + 1}`;
+
+		/*
+		 * همان چیزی که روی سایت واقعی خراب بود: CSS می‌گفت ۴ کارت و سوایپر
+		 * صفر. صفر خطا نمی‌دهد، فقط تقسیم بر صفر می‌کند و هندسه NaN می‌شود —
+		 * اسلایدر حرکت نمی‌کند و چیدمان به هم می‌ریزد.
+		 */
+		ok(
+			`${w}: تعداد کارتِ سوایپر با CSS یکی است`,
+			s.swiperPerView === s.cssPerView,
+			`سوایپر ${s.swiperPerView} ≠ CSS ${s.cssPerView}`
+		);
+		ok(
+			`${w}: اندازهٔ سوایپر با عرض واقعی عنصر یکی است`,
+			Math.abs(s.real - s.measured) <= 1,
+			`واقعی ${s.real} ≠ سوایپر ${s.measured}`
+		);
+		ok(
+			`${w}: عرض کارت بعد از init همان است که CSS پیش از init می‌داد`,
+			Math.abs(s.slideWidth - s.expected) <= 1,
+			`بعد ${s.slideWidth.toFixed(2)} ≠ قبل ${s.expected.toFixed(2)}`
+		);
+		// پدینگِ محافظِ سایه نباید قربانیِ ترتیب بارگذاری شیت‌ها شود؛ اگر
+		// «.swiper { padding: 0 }» برنده شود، مارجین منفیِ نامتقارن می‌ماند و
+		// اسلایدر ۲۴ پیکسل بالا کشیده می‌شود
+		ok(
+			`${w}: فضای محافظ سایه سرِ جایش است`,
+			parseFloat(s.paddingTop) === -parseFloat(s.marginTop),
+			`padding ${s.paddingTop} / margin ${s.marginTop}`
+		);
+	});
 
 	group('حرکت اسلایدر');
 

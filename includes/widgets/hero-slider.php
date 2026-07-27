@@ -685,9 +685,18 @@ class Hero_Slider extends Widget_Base {
         // null؛ جزئیاتش در خودِ کلاس Responsive توضیح داده شده. این کلاس بین
         // ویجت‌ها مشترک است تا آن باگ که یک‌بار اینجا و یک‌بار در بخش
         // محصولات مستقل تکرار شده بود، جای سومی سبز نشود.
-        $speed = Responsive::resolve($settings, 'speed', Responsive::to_int());
-        $spv   = Responsive::resolve($settings, 'slides_per_view', Responsive::to_float());
-        $space = Responsive::resolve($settings, 'space_between', Responsive::to_int());
+        // پشتیبان‌ها همان default کنترل‌های متناظرند. بدون آن‌ها، مقدارِ خالیِ
+        // دسکتاپ به صفر تبدیل می‌شد و slidesPerView صفر یعنی تقسیم بر صفر:
+        // سوایپر بی‌سروصدا از کار می‌افتاد.
+        $speed = Responsive::resolve($settings, 'speed', Responsive::to_int(), 1000);
+        $spv   = Responsive::resolve($settings, 'slides_per_view', Responsive::to_float(), 1);
+        $space = Responsive::resolve($settings, 'space_between', Responsive::to_int(), 0);
+
+        foreach (Responsive::DEVICES as $device) {
+            if ($spv[$device] <= 0) {
+                $spv[$device] = 1.0;
+            }
+        }
 
         $cfg = [
             'autoplay'             => 'yes' === $settings['autoplay'],

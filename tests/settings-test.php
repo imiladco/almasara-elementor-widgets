@@ -35,6 +35,42 @@ Tests::same('کنترل اسلایدری پرشده = تنظیم‌شده', Resp
 Tests::same('صفر یک مقدار معتبر است', Responsive::value(0), 0);
 Tests::same('رشتهٔ خالی یعنی تنظیم‌نشده', Responsive::value(''), null);
 
+/*
+ * دسکتاپ اولین دستگاه است، پس چیزی برای ارث بردن ندارد. اگر خالی باشد،
+ * هر سه دستگاه بی‌مقدار می‌مانند.
+ *
+ * تبدیل نوع نباید روی این «نبودِ مقدار» اجرا شود: (int) null یعنی صفر، و
+ * صفر برای slidesPerView یک عدد معتبرِ غلط است — تقسیم بر صفر در سوایپر.
+ * روی سایت واقعی همین یک خط کل اسلایدر را بی‌صدا از کار انداخته بود.
+ */
+$empty = Responsive::resolve(['slides_per_view' => ''], 'slides_per_view', Responsive::to_float());
+Tests::same('نبودِ مقدار به صفر تبدیل نمی‌شود', $empty['desktop'], null);
+
+$fallback = Responsive::resolve(['slides_per_view' => ''], 'slides_per_view', Responsive::to_float(), 4);
+Tests::same('پشتیبان روی هر سه دستگاه می‌نشیند', $fallback['mobile'], 4.0);
+Tests::same('پشتیبان جای دسکتاپِ خالی را می‌گیرد', $fallback['desktop'], 4.0);
+
+$real = Responsive::resolve(['slides_per_view' => 3], 'slides_per_view', Responsive::to_float(), 4);
+Tests::same('پشتیبان مقدار واقعی را کنار نمی‌زند', $real['desktop'], 3.0);
+
+Tests::group('اسلایدر › پیکربندی خراب');
+
+// همان چیزی که روی سایت دیده شد: spv و gap صفر، در حالی که CSS ۴ و ۲۰ بود
+$broken = Settings::slider(['slides_per_view' => '', 'space_between' => '', 'speed' => '']);
+
+Tests::same('slidesPerView هرگز صفر نمی‌شود', $broken['breakpoints'][1025]['slidesPerView'], 4.0);
+Tests::same('spaceBetween به پیش‌فرض برمی‌گردد', $broken['breakpoints'][1025]['spaceBetween'], 20);
+Tests::same('speed به پیش‌فرض برمی‌گردد', $broken['breakpoints'][1025]['speed'], 600);
+Tests::same('موبایل هم همین‌طور', $broken['slidesPerView'], 4.0);
+
+// عدد منفی یا صفرِ صریح هم همان‌قدر کشنده است
+$zero = Settings::slider(['slides_per_view' => 0, 'space_between' => 20]);
+Tests::same('صفرِ صریح هم اصلاح می‌شود', $zero['breakpoints'][1025]['slidesPerView'], 4.0);
+
+// ولی 'auto' (حالت عرض دستی کارت) باید دست‌نخورده بماند
+$auto = Settings::slider(['slides_per_view' => 4, 'slide_width' => ['size' => 200, 'unit' => 'px']]);
+Tests::same('auto دست‌نخورده می‌ماند', $auto['breakpoints'][1025]['slidesPerView'], 'auto');
+
 Tests::group('اسلایدر › عرض دستی');
 
 $cfg = Settings::slider([

@@ -110,9 +110,22 @@ final class Settings {
      * پس ترتیب عمداً برعکس می‌شود.
      */
     public static function slider(array $s): array {
-        $speed = Responsive::resolve($s, 'speed', Responsive::to_int());
-        $spv   = Responsive::resolve($s, 'slides_per_view', Responsive::to_float());
-        $space = Responsive::resolve($s, 'space_between', Responsive::to_int());
+        // پشتیبان‌ها عمداً همان default کنترل‌های متناظر در content-controls
+        // هستند. لازم‌اند چون مقدار دسکتاپ می‌تواند خالی باشد — مثلاً وقتی
+        // کاربر عدد را پاک کرده یا ویجت با نسخه‌ای ذخیره شده که این کنترل را
+        // نداشته — و آن‌وقت هیچ دستگاهی چیزی برای ارث بردن ندارد.
+        $speed = Responsive::resolve($s, 'speed', Responsive::to_int(), 600);
+        $spv   = Responsive::resolve($s, 'slides_per_view', Responsive::to_float(), 4);
+        $space = Responsive::resolve($s, 'space_between', Responsive::to_int(), 20);
+
+        // صفر برای slidesPerView عددِ معتبر نیست، تقسیم بر صفر است: سوایپر
+        // بی‌آنکه خطایی بدهد هندسه‌اش NaN می‌شود، اسلایدر حرکت نمی‌کند و
+        // چیدمان از لحظهٔ init به هم می‌ریزد.
+        foreach (Responsive::DEVICES as $device) {
+            if (!is_string($spv[$device]) && $spv[$device] <= 0) {
+                $spv[$device] = 4.0;
+            }
+        }
 
         // عرض دستی کارت: هرجا مقدار دارد، CSS عرض اسلاید را تعیین می‌کند و
         // Swiper باید در همان بریک‌پوینت روی 'auto' برود تا بازنویسی‌اش نکند

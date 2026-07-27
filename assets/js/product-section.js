@@ -21,14 +21,73 @@
 		);
 	}
 
+	/*
+	 * نگهبان پیکربندی.
+	 *
+	 * سمت سرور هم اصلاح شده، ولی این لایه لازم است: HTML رندرشده — با همین
+	 * cfg داخلش — کش می‌شود؛ هم ترنزینت خودمان، هم کش صفحه، هم CDN. پس
+	 * صفحه‌ای که با پیکربندی خرابِ قبلی ساخته شده تا انقضای آن کش‌ها همان را
+	 * به مرورگر می‌دهد. اینجا جلویش گرفته می‌شود.
+	 *
+	 * بدترین مقدار، slidesPerView صفر است: سوایپر هیچ خطایی نمی‌دهد، فقط
+	 * تقسیم بر صفر می‌کند و کل هندسه‌اش NaN می‌شود — اسلایدر حرکت نمی‌کند و
+	 * چیدمان از همان لحظهٔ init به هم می‌ریزد، در حالی که پیش از init (که
+	 * چیدمان از CSS و بر حسب درصد می‌آمد) درست بود.
+	 */
+	function positive(value, fallback) {
+		var n = parseFloat(value);
+
+		return (Number.isFinite(n) && n > 0) ? n : fallback;
+	}
+
+	/** slidesPerView معتبر: عدد مثبت یا 'auto' برای حالت عرض دستی کارت */
+	function perView(value, fallback) {
+		return 'auto' === value ? 'auto' : positive(value, fallback);
+	}
+
+	/** فاصله: صفر انتخاب کاملاً معتبری است، فقط عددِ بی‌معنا رد می‌شود */
+	function spacing(value) {
+		var n = parseFloat(value);
+
+		return (Number.isFinite(n) && n >= 0) ? n : 0;
+	}
+
+	function sanitizeBreakpoints(raw, fallbackPerView) {
+		var out = {};
+
+		Object.keys(raw || {}).forEach(function (key) {
+			var bp = raw[key] || {};
+
+			out[key] = {
+				speed: positive(bp.speed, 600),
+				slidesPerView: perView(bp.slidesPerView, fallbackPerView),
+				spaceBetween: spacing(bp.spaceBetween)
+			};
+		});
+
+		return out;
+	}
+
 	function buildOptions(cfg, root) {
 		var editing = isEditor();
 
+		/*
+		 * پشتیبانِ تعداد کارت از خودِ CSS خوانده می‌شود، نه از یک عدد ثابت.
+		 * ‎--amw-ps-spv‎ همان چیزی است که کاربر برای همین دستگاه تنظیم کرده و
+		 * همان است که چیدمانِ پیش از init با آن ساخته می‌شود. پس اگر
+		 * پیکربندی خراب باشد، سوایپر دقیقاً همان چیدمانی را ادامه می‌دهد که
+		 * کاربر تا آن لحظه می‌دیده — نه یک عدد دلبخواه.
+		 */
+		var fallbackPerView = positive(
+			window.getComputedStyle(root).getPropertyValue('--amw-ps-spv'),
+			1
+		);
+
 		var options = {
-			speed: cfg.speed || 600,
-			slidesPerView: cfg.slidesPerView || 1,
-			spaceBetween: cfg.spaceBetween || 0,
-			breakpoints: cfg.breakpoints || {},
+			speed: positive(cfg.speed, 600),
+			slidesPerView: perView(cfg.slidesPerView, fallbackPerView),
+			spaceBetween: spacing(cfg.spaceBetween),
+			breakpoints: sanitizeBreakpoints(cfg.breakpoints, fallbackPerView),
 			rewind: !!cfg.rewind,
 			rtl: !!cfg.rtl,
 			// ویجت اغلب وقتی ساخته می‌شود که هنوز پهنای واقعی ندارد (پنل باز/

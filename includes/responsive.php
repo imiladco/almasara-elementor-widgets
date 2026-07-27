@@ -49,18 +49,30 @@ final class Responsive {
     /**
      * مقدار هر سه دستگاه، با ارث‌بری درست و در صورت نیاز تبدیل نوع.
      *
-     * @param callable|null $cast روی مقدار نهایی هر دستگاه اجرا می‌شود
+     * دربارهٔ ‎$default‎: ارث‌بری از دستگاه بزرگ‌تر به کوچک‌تر است، پس دسکتاپ —
+     * که اولین است — چیزی برای ارث بردن ندارد. اگر مقدار دسکتاپ خالی باشد،
+     * هر سه دستگاه بی‌مقدار می‌مانند و اینجا باید مقدار پشتیبان بنشیند.
+     *
+     * و ‎$cast‎ عمداً روی null اجرا نمی‌شود. قبلاً می‌شد و همین یک خط، خرابیِ
+     * بدی می‌ساخت: ‎(int) null‎ یعنی صفر، پس «تنظیم نشده» بی‌سروصدا به یک
+     * عددِ معتبرِ غلط تبدیل می‌شد. برای slidesPerView این یعنی صفر — یعنی
+     * تقسیم بر صفر در سوایپر — و کل اسلایدر بی‌آنکه خطایی بدهد از کار
+     * می‌افتاد. «تنظیم نشده» باید null بماند تا صدازننده تصمیم بگیرد.
+     *
+     * @param callable|null $cast    روی مقدار نهایی هر دستگاه اجرا می‌شود
+     * @param mixed         $default وقتی هیچ دستگاهی مقدار ندارد
      * @return array{desktop:mixed,tablet:mixed,mobile:mixed}
      */
-    public static function resolve(array $settings, string $key, ?callable $cast = null): array {
+    public static function resolve(array $settings, string $key, ?callable $cast = null, $default = null): array {
         $out      = [];
         $previous = null;
 
         foreach (self::DEVICES as $device) {
             $value    = self::value($settings[self::key($key, $device)] ?? null);
             $previous = $value ?? $previous;
+            $resolved = $previous ?? $default;
 
-            $out[$device] = $cast ? $cast($previous) : $previous;
+            $out[$device] = (null !== $resolved && null !== $cast) ? $cast($resolved) : $resolved;
         }
 
         return $out;

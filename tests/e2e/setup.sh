@@ -61,15 +61,26 @@ for (\$i = 1; \$i <= 8; \$i++) {
 }
 
 // دو ویجت در یک صفحه، تا تداخل چند نمونه هم سنجیده شود
-\$widget = function (\$id) {
-    return ['id'=>\$id,'elType'=>'widget','widgetType'=>'almasara-product-section','settings'=>[
+\$widget = function (\$id, \$overrides = []) {
+    return ['id'=>\$id,'elType'=>'widget','widgetType'=>'almasara-product-section','settings'=>\$overrides + [
         'title'=>'محصولات','card_source'=>'builtin','products_count'=>8,
         'slides_per_view'=>4,'slides_per_view_tablet'=>2.2,'slides_per_view_mobile'=>1.2,
         'space_between'=>20,'show_navigation'=>'yes','cache_minutes'=>0,
         'all_label'=>'همه','rtl'=>'yes',
     ]];
 };
-\$data = [['id'=>'sec1','elType'=>'container','settings'=>[],'elements'=>[\$widget('amwa'), \$widget('amwb')]]];
+
+/*
+ * ویجت دوم عمداً با مقدارِ خالیِ دسکتاپ ذخیره می‌شود — همان چیزی که روی سایت
+ * واقعی پیدا شد و اسلایدر را از کار انداخته بود: ارث‌بری از بزرگ به کوچک
+ * است، پس دسکتاپ چیزی برای ارث بردن ندارد و مقدارش صفر می‌شد؛
+ * slidesPerView صفر یعنی تقسیم بر صفر و هندسهٔ NaN، آن هم بی‌آنکه خطایی
+ * داده شود. روی صفحهٔ آزمایشی می‌ماند تا این حالت همیشه سنجیده شود.
+ */
+\$data = [['id'=>'sec1','elType'=>'container','settings'=>[],'elements'=>[
+    \$widget('amwa'),
+    \$widget('amwb', ['slides_per_view'=>'', 'space_between'=>'', 'speed'=>'']),
+]]];
 
 \$page = get_page_by_path('amw-e2e');
 \$pid  = \$page ? \$page->ID : wp_insert_post(['post_title'=>'AMW E2E','post_name'=>'amw-e2e','post_type'=>'page','post_status'=>'publish']);
