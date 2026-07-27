@@ -107,7 +107,13 @@ $mixed = Fixture::variable([
     ['regular' => 2000],
 ]);
 
-$widget = new \Almasara_Widgets\Widgets\Product_Price();
+/*
+ * سازنده عمداً صدا زده نمی‌شود: اگر المنتور واقعی نصب باشد، Widget_Base
+ * آرگومان می‌خواهد و بدون کانتکست ویجت خطا می‌دهد. منطق قیمت به هیچ‌کدام
+ * از آن‌ها وابسته نیست، پس نمونه‌سازی بدون سازنده هم درست کار می‌کند و هم
+ * با استاب و هم با المنتور واقعی سازگار است.
+ */
+$widget = (new ReflectionClass(\Almasara_Widgets\Widgets\Product_Price::class))->newInstanceWithoutConstructor();
 $method = new ReflectionMethod($widget, 'get_price_data');
 $method->setAccessible(true);
 $data = $method->invoke($widget, $mixed, 'min');
@@ -234,26 +240,46 @@ Tests::group('یکپارچه › کش');
 
 $cached = Fixture::simple(['name' => 'برای کش', 'price' => 1000]);
 
+/**
+ * تغییر بی‌سروصدای عنوان محصول.
+ *
+ * عمداً از ‎$product->save()‎ استفاده نمی‌شود: اگر افزونه در همان نصب فعال
+ * باشد، هوک ‎woocommerce_update_product‎ نسخهٔ کش را بالا می‌برد و کش به‌درستی
+ * باطل می‌شود — یعنی تست به‌جای «آیا کش کار می‌کند» به «آیا افزونه فعال
+ * است» حساس می‌شد. با نوشتن مستقیم روی جدول، هیچ هوکی شلیک نمی‌شود و
+ * تنها راه دیدنِ نام قدیمی، خوانده‌شدن از کش است.
+ */
+$rename = static function (int $id, string $title): void {
+    global $wpdb;
+    $wpdb->update($wpdb->posts, ['post_title' => $title], ['ID' => $id]);
+    clean_post_cache($id);
+};
+
 // مهمان: کش فعال
 wp_set_current_user(0);
 $args  = amw_query_args(['cache' => 5]);
 $first = Query::render($args);
 
-$cached->set_name('نام عوض شد');
-$cached->save();
-// نسخهٔ کش عمداً بالا برده نمی‌شود تا ببینیم واقعاً از کش خوانده می‌شود
+$rename($cached->get_id(), 'نام عوض شد');
 $second = Query::render($args);
 
 Tests::same('مهمان: خروجی از کش می‌آید', $second['html'], $first['html']);
+
+// و با بالا رفتن نسخه، همان کش باید کنار برود
+Query::bump_cache_version();
+$third = Query::render($args);
+
+Tests::ok(
+    'بالا رفتن نسخهٔ کش، خروجی را تازه می‌کند',
+    false !== strpos($third['html'], 'نام عوض شد')
+);
 
 // کاربر واردشده: هرگز کش نمی‌شود
 $userId = wp_insert_user(['user_login' => 'amwtest' . wp_generate_password(6, false), 'user_pass' => 'x', 'role' => 'customer']);
 wp_set_current_user($userId);
 
 $loggedFirst = Query::render($args);
-$cached->set_name('نام سوم');
-$cached->save();
-Query::bump_cache_version();
+$rename($cached->get_id(), 'نام سوم');
 $loggedSecond = Query::render($args);
 
 Tests::ok(

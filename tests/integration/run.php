@@ -25,14 +25,25 @@ function wc_price_test_format($value): string {
  * وابستگی‌ای به المنتور ندارد. با استابِ کمینه، همان منطق را روی دادهٔ
  * واقعی ووکامرس می‌سنجیم بدون آنکه نصب المنتور لازم شود.
  */
-require_once dirname(__DIR__) . '/lib/elementor-stub.php';
-require_once dirname(__DIR__, 2) . '/includes/widgets/traits/intro-row.php';
-require_once dirname(__DIR__, 2) . '/includes/widgets/product-price.php';
+if (!class_exists(\Almasara_Widgets\Widgets\Product_Price::class)) {
+    require_once dirname(__DIR__) . '/lib/elementor-stub.php';
+
+    if (!trait_exists(\Almasara_Widgets\Widgets\Traits\Intro_Row::class)) {
+        require_once dirname(__DIR__, 2) . '/includes/widgets/traits/intro-row.php';
+    }
+
+    require_once dirname(__DIR__, 2) . '/includes/widgets/product-price.php';
+}
+
+// محصولات از پیش موجود کنار گذاشته می‌شوند تا assertهای «چه چیزی رندر شد»
+// فقط دادهٔ خودِ تست را ببینند
+Isolation::begin();
 
 foreach (glob(__DIR__ . '/*-test.php') as $file) {
     require_once $file;
 }
 
 Fixture::cleanup();
+Isolation::end();
 
 exit(Tests::summary());

@@ -1,0 +1,11 @@
+{
+  "name": "almasara-elementor-widgets",
+  "private": true,
+  "description": "ابزارهای توسعه؛ خودِ افزونه هیچ وابستگی npm ندارد",
+  "scripts": {
+    "test:e2e": "node tests/e2e/run.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}

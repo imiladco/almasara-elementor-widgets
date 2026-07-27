@@ -12,7 +12,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const WP_ROOT = process.env.WP_ROOT;
 const PORT = process.env.PORT || 8899;
@@ -68,8 +69,41 @@ process.on('exit', stop);
 
 await new Promise((r) => setTimeout(r, 2500));
 
+/**
+ * مسیر کروم.
+ *
+ * روی CI که `playwright install` اجرا شده، خودِ playwright مرورگرش را پیدا
+ * می‌کند و این تابع چیزی برنمی‌گرداند. ولی در محیط‌هایی که مرورگر از پیش
+ * نصب شده و نسخه‌اش با نسخهٔ playwright یکی نیست، جست‌وجوی پیش‌فرض شکست
+ * می‌خورد؛ آن‌وقت هر کرومی که در PLAYWRIGHT_BROWSERS_PATH باشد کار را
+ * راه می‌اندازد.
+ */
+function findChromium() {
+	if (process.env.CHROMIUM_PATH) {
+		return process.env.CHROMIUM_PATH;
+	}
+
+	const root = process.env.PLAYWRIGHT_BROWSERS_PATH;
+
+	if (!root || !existsSync(root)) {
+		return undefined;
+	}
+
+	const dirs = readdirSync(root).filter((d) => d.startsWith('chromium-')).sort().reverse();
+
+	for (const dir of dirs) {
+		const bin = join(root, dir, 'chrome-linux', 'chrome');
+
+		if (existsSync(bin)) {
+			return bin;
+		}
+	}
+
+	return undefined;
+}
+
 const browser = await chromium.launch({
-	executablePath: process.env.CHROMIUM_PATH || undefined,
+	executablePath: findChromium(),
 	args: ['--no-sandbox'],
 });
 

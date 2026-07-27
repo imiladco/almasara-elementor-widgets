@@ -85,6 +85,12 @@ jobs:
       - name: اجرای تست مرورگری
         run: WP_ROOT="$RUNNER_TEMP/wpint/wp" node tests/e2e/run.mjs
 
+      # همان نصب، این بار با المنتور و افزونهٔ فعال و محصولات e2e داخلش.
+      # اگر جداسازی تست یکپارچه بشکند — چه از نظر داده، چه از نظر لود شدنِ
+      # کپیِ کهنهٔ افزونه — اینجا لو می‌رود، نه بعداً روی سیستم کسی.
+      - name: تست یکپارچه روی نصبِ آلوده
+        run: WP_ROOT="$RUNNER_TEMP/wpint/wp" php tests/integration/run.php
+
   javascript:
     name: JavaScript
     runs-on: ubuntu-latest

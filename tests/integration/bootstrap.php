@@ -33,6 +33,50 @@ if (!$wp_root || !file_exists($wp_root . '/wp-load.php')) {
 ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_WARNING);
 
+$plugin_dir = dirname(__DIR__, 2);
+
+/*
+ * افزونه باید از همین پوشهٔ کاری خوانده شود، نه از نسخه‌ای که شاید داخل
+ * wp-content/plugins کپی شده باشد (tests/e2e/setup.sh دقیقاً همین کار را
+ * می‌کند). وگرنه تست بی‌آنکه چیزی بگوید کدِ کهنه را می‌سنجد و هر تغییری در
+ * پوشهٔ کاری نامرئی می‌ماند — بدترین حالتِ ممکن برای یک تست.
+ *
+ * چون wp-load.php اولین چیزی است که اجرا می‌شود، جایی برای هوک زدن نمانده؛
+ * تنها نقطهٔ ورودِ زودهنگام، mu-plugin است که وردپرس پیش از افزونه‌های
+ * معمولی لود می‌کند. آنجا فهرست افزونه‌های فعال فیلتر می‌شود.
+ *
+ * فایل بی‌اثر است مگر آنکه AMW_INTEGRATION ست باشد، پس e2e و مرورگر
+ * همچنان افزونه را فعال می‌بینند.
+ */
+$mu_code = <<<'PHP'
+<?php
+/**
+ * Plugin Name: AMW integration isolation
+ *
+ * فقط در جریان tests/integration اثر دارد: کپیِ افزونه داخل این نصب را از
+ * بارگذاری کنار می‌گذارد تا تست، کدِ پوشهٔ کاری را بسنجد نه کپی را.
+ */
+if (getenv('AMW_INTEGRATION')) {
+    add_filter('option_active_plugins', static function ($plugins) {
+        return array_values(array_filter((array) $plugins, static function ($p) {
+            return false === strpos((string) $p, 'almasara-elementor-widgets/');
+        }));
+    });
+}
+PHP;
+
+$mu_dir  = $wp_root . '/wp-content/mu-plugins';
+$mu_file = $mu_dir . '/amw-integration-isolation.php';
+
+if (!is_dir($mu_dir)) {
+    mkdir($mu_dir, 0777, true);
+}
+if (!is_file($mu_file) || file_get_contents($mu_file) !== $mu_code) {
+    file_put_contents($mu_file, $mu_code);
+}
+
+putenv('AMW_INTEGRATION=1');
+
 require_once $wp_root . '/wp-load.php';
 
 if (!class_exists('WooCommerce')) {
@@ -44,13 +88,118 @@ if (!class_exists('WooCommerce')) {
 // function_exists محافظت شده‌اند، پس با وردپرس واقعی تداخل نمی‌کنند.
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-$plugin = dirname(__DIR__, 2);
+/*
+ * کلاس‌ها فقط اگر از قبل نباشند بارگذاری می‌شوند: اگر با وجود جداسازیِ
+ * بالا باز هم کسی آن‌ها را لود کرده باشد، require دوباره «Cannot redeclare»
+ * می‌دهد.
+ */
+foreach ([
+    'Almasara_Widgets\Svg'                       => '/includes/svg.php',
+    'Almasara_Widgets\Responsive'                => '/includes/responsive.php',
+    'Almasara_Widgets\Product_Card'              => '/includes/product-card.php',
+    'Almasara_Widgets\Product_Section\Settings'  => '/includes/product-section/settings.php',
+    'Almasara_Widgets\Product_Section\Query'     => '/includes/product-section/query.php',
+] as $class => $file) {
+    if (!class_exists($class)) {
+        require_once $plugin_dir . $file;
+    }
+}
 
-require_once $plugin . '/includes/svg.php';
-require_once $plugin . '/includes/responsive.php';
-require_once $plugin . '/includes/product-card.php';
-require_once $plugin . '/includes/product-section/settings.php';
-require_once $plugin . '/includes/product-section/query.php';
+/*
+ * تور ایمنی: اگر جداسازی به هر دلیلی نگرفته باشد، تست باید سر و صدا کند نه
+ * اینکه در سکوت کدِ کهنه را سبز اعلام کند.
+ */
+$loaded_from = (new ReflectionClass(\Almasara_Widgets\Product_Section\Query::class))->getFileName();
+
+if (0 !== strpos((string) realpath($loaded_from), (string) realpath($plugin_dir))) {
+    fwrite(STDERR, sprintf(
+        "\nکلاس‌های افزونه از مسیر دیگری لود شده‌اند:\n  %s\nانتظار می‌رفت از:\n  %s\n"
+        . "یعنی تست نسخهٔ دیگری از کد را می‌سنجد. mu-plugin جداسازی را بررسی کنید.\n\n",
+        $loaded_from,
+        $plugin_dir
+    ));
+    exit(1);
+}
+
+/* --------------------------------------------------------------------------
+ * جداسازی از محتوای از پیش موجود
+ * ----------------------------------------------------------------------- */
+
+/**
+ * محصولاتی که خودِ تست نساخته را موقتاً از دید کوئری پنهان می‌کند.
+ *
+ * چرا لازم است: بخش زیادی از assertها دربارهٔ «چه چیزی رندر شده» است —
+ * «فقط یک کارت»، «این محصول نباید باشد»، «خروجی از کش می‌آید». همهٔ این‌ها
+ * فرض می‌کنند تنها محصولات موجود، همان‌هایی‌اند که Fixture ساخته. کافی است
+ * چیز دیگری در همان نصب باشد (مثلاً هشت محصولی که tests/e2e/setup.sh
+ * می‌سازد) تا تست‌ها بی‌آنکه افزونه ایرادی داشته باشد قرمز شوند.
+ *
+ * به‌جای دست‌کاری کوئریِ زیر آزمایش، وضعیت آن پست‌ها به draft تغییر می‌کند
+ * و در پایان دقیقاً به حالت قبل برمی‌گردد. این‌طور کوئری همان مسیر واقعیِ
+ * تولید را طی می‌کند و چیزی از منطقش دور زده نمی‌شود.
+ */
+final class Isolation {
+
+    /**
+     * سقف احتیاطی: نصب یک‌بارمصرفِ setup.sh چند محصول بیشتر ندارد. اگر
+     * WP_ROOT اشتباهی به سایت واقعی اشاره کند، تست به‌جای دست زدن به
+     * کاتالوگ، متوقف می‌شود.
+     */
+    private const MAX_FOREIGN = 200;
+
+    /** @var array<int,string> شناسه => وضعیت اصلی */
+    private static array $parked = [];
+
+    private static bool $shutdown_registered = false;
+
+    public static function begin(): void {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            "SELECT ID, post_status FROM {$wpdb->posts}
+             WHERE post_type IN ('product', 'product_variation')
+               AND post_status = 'publish'"
+        );
+
+        if (count($rows) > self::MAX_FOREIGN) {
+            fwrite(STDERR, sprintf(
+                "\nاین نصب %d محصول منتشرشده دارد؛ به‌نظر یک سایت واقعی می‌آید.\n"
+                . "تست‌های یکپارچه محتوا را تغییر می‌دهند، پس روی نصب یک‌بارمصرفِ\n"
+                . "tests/integration/setup.sh اجرایشان کنید.\n\n",
+                count($rows)
+            ));
+            exit(1);
+        }
+
+        foreach ($rows as $row) {
+            $id = (int) $row->ID;
+            self::$parked[$id] = $row->post_status;
+
+            // مستقیم روی جدول: wp_update_post روی محصول، همگام‌سازی و
+            // هوک‌های ووکامرس را راه می‌اندازد که اینجا نه لازم است نه
+            // بی‌خطر. وضعیت، تنها چیزی است که کوئری به آن نگاه می‌کند.
+            $wpdb->update($wpdb->posts, ['post_status' => 'draft'], ['ID' => $id]);
+            clean_post_cache($id);
+        }
+
+        if (self::$parked && !self::$shutdown_registered) {
+            self::$shutdown_registered = true;
+            // اگر تستی وسط کار fatal داد، کاتالوگ نباید draft بماند
+            register_shutdown_function([self::class, 'end']);
+        }
+    }
+
+    public static function end(): void {
+        global $wpdb;
+
+        foreach (self::$parked as $id => $status) {
+            $wpdb->update($wpdb->posts, ['post_status' => $status], ['ID' => $id]);
+            clean_post_cache($id);
+        }
+
+        self::$parked = [];
+    }
+}
 
 /* --------------------------------------------------------------------------
  * کمکی‌های ساخت داده

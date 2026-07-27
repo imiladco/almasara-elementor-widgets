@@ -141,6 +141,7 @@ WP_ROOT=/tmp/wpint/wp php tests/integration/run.php
 bash tests/e2e/setup.sh /tmp/wpint
 npm i -D playwright && npx playwright install chromium
 WP_ROOT=/tmp/wpint/wp node tests/e2e/run.mjs
+# اگر کروم از پیش نصب است: CHROMIUM_PATH=/path/to/chrome node tests/e2e/run.mjs
 
 find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 npx eslint assets/js -c eslint.config.mjs
@@ -166,6 +167,20 @@ CI روی هر push و pull request همین‌ها را اجرا می‌کند
 گزینه (و کنارگذاشتن گزینهٔ نامرئی)، رفتار کش برای مهمان و کاربر واردشده،
 و پاک‌سازی SVG از یک پیوست واقعی. اگر `WP_ROOT` تنظیم نباشد با پیام
 راهنما رد می‌شوند، نه شکست.
+
+این لایه دو جور خودش را از نصبِ میزبان جدا می‌کند، چون هر دو یک‌بار باعث
+سبز یا قرمزِ دروغین شده بودند:
+
+- **کدِ زیر آزمایش** همیشه از پوشهٔ کاری خوانده می‌شود. اگر افزونه در همان
+  نصب فعال باشد (کاری که `tests/e2e/setup.sh` می‌کند)، وردپرس کپیِ داخل
+  `wp-content/plugins` را لود می‌کند و تست بی‌صدا کدِ کهنه را می‌سنجد. یک
+  mu-plugin کوچک — که خودِ راه‌انداز می‌نویسد و فقط با `AMW_INTEGRATION`
+  فعال می‌شود — آن کپی را از فهرست افزونه‌های فعال کنار می‌گذارد. اگر باز
+  هم نگیرد، راه‌انداز مسیر واقعیِ کلاس‌ها را می‌سنجد و با خطا می‌ایستد.
+- **داده** هم جدا می‌شود: محصولاتی که خودِ تست نساخته موقتاً `draft`
+  می‌شوند و در پایان (حتی اگر تستی fatal بدهد) به وضعیت قبلی برمی‌گردند.
+  بدون این، هر محصولی که از قبل در نصب باشد assertهای «فقط یک کارت» را
+  می‌شکست.
 
 ### دربارهٔ `tests/fixtures-controls.txt`
 
