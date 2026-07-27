@@ -25,6 +25,9 @@ if (!defined('ABSPATH')) {
  */
 class Product_Price extends Widget_Base {
 
+    /** سقف تعداد گزینه‌ای که برای یافتن ارزان‌ترین، تک‌تک خوانده می‌شود */
+    private const MAX_VARIATIONS_SCANNED = 50;
+
     use Traits\Intro_Row; // برای گزینه‌های چیدمان مشترک
 
     public function get_name(): string {
@@ -532,11 +535,32 @@ class Product_Price extends Widget_Base {
      * @return array{price:string,regular:string}
      */
     private function cheapest_variation(\WC_Product $product): array {
-        $best = ['price' => '', 'regular' => ''];
+        $best     = ['price' => '', 'regular' => ''];
+        $children = $product->get_children();
 
-        foreach ($product->get_children() as $child_id) {
+        /*
+         * محصولی با صدها گزینه نباید صدها آبجکت بسازد. از یک حدی به بعد
+         * ارزشِ درصدِ دقیق‌تر، هزینهٔ لود همهٔ گزینه‌ها را توجیه نمی‌کند و به
+         * مقدار تجمیعی خودِ ووکامرس اکتفا می‌شود.
+         */
+        if (count($children) > self::MAX_VARIATIONS_SCANNED) {
+            return $this->aggregate_variation_price($product);
+        }
+
+        foreach ($children as $child_id) {
             $variation = wc_get_product($child_id);
+
             if (!$variation instanceof \WC_Product || !$variation->exists()) {
+                continue;
+            }
+
+            // گزینهٔ پنهان یا غیرقابل‌خرید نباید مبنای قیمت نمایشی شود؛ وگرنه
+            // کارت عددی نشان می‌دهد که مشتری اصلاً نمی‌تواند بخرد
+            if (method_exists($variation, 'variation_is_visible') && !$variation->variation_is_visible()) {
+                continue;
+            }
+
+            if (!$variation->is_purchasable()) {
                 continue;
             }
 
@@ -553,13 +577,18 @@ class Product_Price extends Widget_Base {
             }
         }
 
-        // اگر هیچ گزینه‌ای خوانده نشد، به مقدار تجمیعی خودِ ووکامرس برمی‌گردیم
-        if ('' === $best['price']) {
-            $min = $product->get_variation_price('min', true);
-            $best['price'] = ('' === $min || null === $min) ? '' : (string) $min;
-        }
+        // اگر هیچ گزینهٔ قابل نمایشی نبود، به مقدار تجمیعی برمی‌گردیم
+        return '' === $best['price'] ? $this->aggregate_variation_price($product) : $best;
+    }
 
-        return $best;
+    /** کمترین قیمت تجمیعیِ خودِ ووکامرس، بدون قیمت پیشین */
+    private function aggregate_variation_price(\WC_Product $product): array {
+        $min = $product->get_variation_price('min', true);
+
+        return [
+            'price'   => ('' === $min || null === $min) ? '' : (string) $min,
+            'regular' => '',
+        ];
     }
 
     private function format_amount(string $value): string {

@@ -359,6 +359,15 @@
 				initAll(document);
 			});
 		};
-		new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+		// فقط وقتی گره‌ای واقعاً اضافه شده باشد؛ حذفِ تنها نمی‌تواند ویجت
+		// تازه‌ای بیاورد، پس اسکنش بی‌فایده است
+		new MutationObserver(function (records) {
+			for (var i = 0; i < records.length; i++) {
+				if (records[i].addedNodes.length) {
+					scan();
+					return;
+				}
+			}
+		}).observe(document.body, { childList: true, subtree: true });
 	}
 })();

@@ -51,6 +51,8 @@ final class Svg {
         'flood-color', 'flood-opacity', 'operator',
         'xmlns', 'xmlns:xlink',
         'aria-hidden', 'aria-label', 'role', 'focusable',
+        // فقط برای ارجاع به قطعهٔ داخلی همان سند؛ در clean() اجبار می‌شود
+        'href', 'xlink:href',
     ];
 
     /**
@@ -93,14 +95,33 @@ final class Svg {
             return '';
         }
 
+        /*
+         * هر سندی که DOCTYPE یا تعریف موجودیت دارد، پیش از پارس رد می‌شود.
+         *
+         * این بررسی عمداً قبل از loadXML است، نه بعدش: تا وقتی پارسر سند را
+         * خوانده باشد، موجودیت‌ها ممکن است باز شده باشند و حذف DOCTYPE در آن
+         * مرحله دیگر دیر است. یک آیکون سالم هیچ‌وقت DOCTYPE ندارد، پس این
+         * شرط چیزی از کار نمی‌اندازد.
+         */
+        if (preg_match('/<!\s*(DOCTYPE|ENTITY)/i', $svg)) {
+            return '';
+        }
+
         $dom                      = new \DOMDocument();
         $dom->preserveWhiteSpace  = false;
         $dom->strictErrorChecking = false;
 
-        // LIBXML_NONET شبکه را می‌بندد و NOENT از باز شدن موجودیت‌ها جلوگیری
-        // می‌کند — با هم جلوی XXE و billion-laughs را می‌گیرند
+        /*
+         * LIBXML_NONET دسترسی شبکه را می‌بندد.
+         *
+         * LIBXML_NOENT عمداً استفاده نمی‌شود. برخلاف چیزی که نامش القا
+         * می‌کند، آن flag موجودیت‌ها را «غیرفعال» نمی‌کند بلکه جایگزین و
+         * باز می‌کند — یعنی دقیقاً همان رفتاری را روشن می‌کند که می‌خواهیم
+         * جلویش را بگیریم. بدون آن، ارجاع به موجودیت دست‌نخورده و بی‌اثر
+         * می‌ماند و در پاک‌سازی هم حذف می‌شود.
+         */
         $previous = libxml_use_internal_errors(true);
-        $loaded   = $dom->loadXML($svg, LIBXML_NONET | LIBXML_NOENT | LIBXML_NOBLANKS);
+        $loaded   = $dom->loadXML($svg, LIBXML_NONET | LIBXML_NOBLANKS);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
@@ -110,13 +131,6 @@ final class Svg {
 
         if ('svg' !== strtolower($dom->documentElement->nodeName)) {
             return '';
-        }
-
-        // DOCTYPE می‌تواند حامل تعریف موجودیت باشد؛ کاملاً حذف می‌شود
-        foreach (iterator_to_array($dom->childNodes) as $node) {
-            if (XML_DOCUMENT_TYPE_NODE === $node->nodeType) {
-                $dom->removeChild($node);
-            }
         }
 
         self::clean($dom->documentElement);
@@ -158,13 +172,21 @@ final class Svg {
             }
         }
 
-        // use فقط به قطعهٔ داخلی همان سند اجازه دارد اشاره کند
-        if ('use' === strtolower($element->nodeName)) {
-            foreach (['href', 'xlink:href'] as $attr) {
-                $value = $element->getAttribute($attr);
-                if ('' !== $value && 0 !== strpos($value, '#')) {
-                    $element->removeAttribute($attr);
-                }
+        /*
+         * href فقط اجازهٔ ارجاع به قطعهٔ داخلی همان سند را دارد.
+         *
+         * قاعده روی همهٔ عنصرها اعمال می‌شود نه فقط use: هر چیز دیگری —
+         * آدرس خارجی، data:، مسیر نسبی — یعنی سند به منبعی بیرون از خودش
+         * وصل می‌شود که در یک آیکون هیچ جایی ندارد.
+         */
+        foreach (['href', 'xlink:href'] as $attr) {
+            if (!$element->hasAttribute($attr)) {
+                continue;
+            }
+
+            $value = trim($element->getAttribute($attr));
+            if ('' === $value || 0 !== strpos($value, '#')) {
+                $element->removeAttribute($attr);
             }
         }
     }

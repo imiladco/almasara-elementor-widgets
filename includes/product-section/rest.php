@@ -83,9 +83,16 @@ final class Rest {
             return new \WP_Error('widget_not_found', __('این ویجت پیدا نشد.', 'almasara-widgets'), ['status' => 404]);
         }
 
-        $result = Query::render(
-            ['category' => absint($request->get_param('category'))] + Settings::query($settings)
-        );
+        $category = absint($request->get_param('category'));
+
+        // دسته باید یکی از همان‌هایی باشد که در پیل‌های این ویجت تعریف شده
+        // (یا ۰ برای «همه»). وگرنه می‌شد با پیمایش شناسه‌ها، برای هر ترمِ
+        // سایت یک کوئری و یک کلید کش تازه ساخت.
+        if (!Settings::allows_category($settings, $category)) {
+            return new \WP_Error('invalid_category', __('این دسته‌بندی در تنظیمات ویجت نیست.', 'almasara-widgets'), ['status' => 400]);
+        }
+
+        $result = Query::render(['category' => $category] + Settings::query($settings));
 
         $response = rest_ensure_response($result);
 

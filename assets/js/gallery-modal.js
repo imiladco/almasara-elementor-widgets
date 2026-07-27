@@ -145,7 +145,6 @@
 			isOpen = true;
 
 			// یک reflow کوچک تا transition درست بازی کند بعد افزودن کلاس
-			// eslint-disable-next-line no-unused-expressions
 			modal.offsetHeight;
 
 			// حبس فوکوس، خنثی‌کردن پس‌زمینه، بستن با Escape و برگرداندن فوکوس

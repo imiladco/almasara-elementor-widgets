@@ -29,6 +29,25 @@ final class Settings {
             : self::SOURCE_JETENGINE;
     }
 
+    /**
+     * شناسهٔ دسته‌بندی‌هایی که در پیل‌های این ویجت تعریف شده‌اند.
+     *
+     * @return int[]
+     */
+    public static function categories(array $s): array {
+        $ids = array_map(
+            static fn($row) => absint($row['category'] ?? 0),
+            (array) ($s['categories'] ?? [])
+        );
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /** ۰ یعنی «همه»؛ بقیه فقط اگر واقعاً در تنظیمات همین ویجت باشند */
+    public static function allows_category(array $s, int $category): bool {
+        return 0 === $category || in_array($category, self::categories($s), true);
+    }
+
     /** فیلترهای محتوایی */
     public static function filters(array $s): array {
         $has_price = 'yes' === ($s['filter_has_price'] ?? '');

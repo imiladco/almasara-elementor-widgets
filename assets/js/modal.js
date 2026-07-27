@@ -36,36 +36,49 @@
 		return stack.length ? stack[stack.length - 1] : null;
 	}
 
-	/** بقیهٔ صفحه از دسترس صفحه‌خوان و Tab خارج می‌شود */
+	/**
+	 * بقیهٔ صفحه از دسترس صفحه‌خوان و Tab خارج می‌شود.
+	 *
+	 * در تمام زنجیرهٔ اجداد بالا می‌رویم و در هر سطح، هم‌نیاهای مودال را
+	 * خنثی می‌کنیم — نه فقط فرزندان مستقیم body. چون مودال معمولاً داخل
+	 * ساختار المنتور رندر می‌شود، خنثی‌کردنِ فقط سطح body یعنی باقی محتوای
+	 * همان کانتینر برای صفحه‌خوان باز می‌ماند: حبس فوکوس جلوی Tab را
+	 * می‌گیرد ولی درخت دسترس‌پذیری کامل محدود نمی‌شود.
+	 */
 	function setBackgroundInert(modal, on) {
-		var parent = modal.parentNode;
-		while (parent && parent !== document.body) {
-			modal = parent;
-			parent = parent.parentNode;
-		}
-		if (!parent) {
-			return;
-		}
+		var node = modal;
 
-		Array.prototype.forEach.call(document.body.children, function (child) {
-			if (child === modal) {
-				return;
-			}
-			if (on) {
-				if (child.hasAttribute('aria-hidden')) {
-					child.setAttribute('data-amw-had-hidden', '1');
+		while (node && node.parentNode && node.parentNode !== document) {
+			var parent = node.parentNode;
+			var self = node;
+
+			Array.prototype.forEach.call(parent.children || [], function (sibling) {
+				if (sibling === self) {
+					return;
 				}
-				child.setAttribute('aria-hidden', 'true');
-				child.inert = true;
-			} else {
-				if (child.getAttribute('data-amw-had-hidden')) {
-					child.removeAttribute('data-amw-had-hidden');
+
+				if (on) {
+					// مقدار قبلی نگه داشته می‌شود تا موقع بستن، چیزی که خودِ
+					// صفحه از قبل مخفی کرده بود دوباره آشکار نشود
+					if (sibling.hasAttribute('aria-hidden')) {
+						sibling.setAttribute('data-amw-had-hidden', sibling.getAttribute('aria-hidden'));
+					}
+					sibling.setAttribute('aria-hidden', 'true');
+					sibling.inert = true;
 				} else {
-					child.removeAttribute('aria-hidden');
+					var had = sibling.getAttribute('data-amw-had-hidden');
+					if (null !== had) {
+						sibling.setAttribute('aria-hidden', had);
+						sibling.removeAttribute('data-amw-had-hidden');
+					} else {
+						sibling.removeAttribute('aria-hidden');
+					}
+					sibling.inert = false;
 				}
-				child.inert = false;
-			}
-		});
+			});
+
+			node = parent;
+		}
 	}
 
 	function onKeydown(e) {
@@ -154,6 +167,9 @@
 		var entry = stack.splice(index, 1)[0];
 
 		modal.classList.remove('is-open');
+		// مودالِ بسته باید از درخت دسترس‌پذیری بیرون بماند، وگرنه محتوایش
+		// همچنان برای صفحه‌خوان خوانده می‌شود
+		modal.setAttribute('aria-hidden', 'true');
 		setBackgroundInert(modal, false);
 
 		if (!stack.length) {

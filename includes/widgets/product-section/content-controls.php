@@ -104,10 +104,14 @@ trait Content_Controls {
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
 
+        // پیش‌فرض به وجود جت‌انجین گره خورده است. قبلاً همیشه jetengine بود،
+        // پس روی سایتی که فقط المنتور و ووکامرس دارد، ویجت در اولین استفاده
+        // خروجی خالی می‌داد. ویجت‌های ذخیره‌شده مقدار صریح خودشان را دارند و
+        // این تغییر رویشان اثری ندارد.
         $this->add_control('card_source', [
             'label'   => __('کارت محصول از', 'almasara-widgets'),
             'type'    => Controls_Manager::SELECT,
-            'default' => 'jetengine',
+            'default' => function_exists('jet_engine') ? 'jetengine' : 'builtin',
             'options' => [
                 'jetengine' => __('قالب Listing جت‌انجین', 'almasara-widgets'),
                 'builtin'   => __('کارت داخلی این افزونه', 'almasara-widgets'),
@@ -162,7 +166,14 @@ trait Content_Controls {
             'min'         => 0,
             'max'         => 1440,
             'separator'   => 'before',
-            'description' => __('رندر کارت‌ها سنگین‌ترین بخش این بخش است؛ کش این هزینه را فقط یک‌بار در هر بازه پرداخت می‌کند. با هر ویرایش محصول یا تغییر موجودی، کش خودکار باطل می‌شود. ۰ = خاموش. مرتب‌سازی تصادفی هرگز کش نمی‌شود.', 'almasara-widgets'),
+            'description' => __('رندر کارت‌ها سنگین‌ترین بخش این ویجت است؛ کش این هزینه را فقط یک‌بار در هر بازه پرداخت می‌کند. با هر ویرایش محصول، تغییر موجودی یا ذخیرهٔ صفحه، کش خودکار باطل می‌شود. ۰ = خاموش. مرتب‌سازی تصادفی و کاربران واردشده هرگز کش نمی‌شوند.', 'almasara-widgets'),
+        ]);
+
+        $this->add_control('cache_warning', [
+            'type'            => Controls_Manager::RAW_HTML,
+            'raw'             => __('هشدار برای قالب Listing جت‌انجین: خروجی کش‌شده بین همهٔ بازدیدکنندگان مهمان مشترک است. کلید کش نقش کاربر و واحد پول را در نظر می‌گیرد، ولی اگر کارت شما چیزی وابسته به همان بازدیدکننده نشان می‌دهد — سبد خرید، لیست علاقه‌مندی، قیمت منطقه‌ای، کوپن اختصاصی یا nonce — کش را خاموش کنید یا با فیلتر almasara_ps_cache_bucket آن متغیر را به کلید اضافه کنید.', 'almasara-widgets'),
+            'content_classes' => 'elementor-descriptor',
+            'condition'       => ['card_source' => 'jetengine', 'cache_minutes!' => '0'],
         ]);
 
         $this->add_control('heading_filters', [

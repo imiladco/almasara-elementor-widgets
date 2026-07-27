@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # پایین‌ترین نسخهٔ پشتیبانی‌شده تا جدیدترین پایدار
+        php: ['7.4', '8.1', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, libxml, mbstring
+          coverage: none
+          tools: cs2pr
+
+      - name: بررسی نحوی همهٔ فایل‌های PHP
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -print0 \
+            | xargs -0 -n1 -P4 php -l
+
+      - name: تست‌ها
+        run: php tests/run.php
+
+  javascript:
+    name: JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: بررسی نحوی
+        run: for f in assets/js/*.js; do node --check "$f"; done
+
+      - name: ESLint
+        run: npx --yes eslint assets/js --no-config-lookup -c eslint.config.mjs
+
+  coding-standards:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: phpcs, cs2pr
+
+      - name: نصب استانداردهای وردپرس
+        run: |
+          composer global require --no-interaction --quiet \
+            wp-coding-standards/wpcs:^3 \
+            dealerdirect/phpcodesniffer-composer-installer:^1
+          phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+
+      - name: PHPCS
+        run: phpcs -q --report=checkstyle | cs2pr
+        continue-on-error: true

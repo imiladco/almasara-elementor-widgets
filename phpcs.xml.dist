@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ruleset name="Almasara Elementor Widgets">
+	<description>استانداردهای کدنویسی وردپرس برای این افزونه.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>*/assets/vendor/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<!-- تست‌ها عمداً بیرون از قراردادهای وردپرس نوشته شده‌اند -->
+	<exclude-pattern>*/tests/lib/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+
+	<rule ref="WordPress-Core">
+		<!-- افزونه با ۴ فاصله نوشته شده، نه تب -->
+		<exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+		<exclude name="WordPress.Arrays.ArrayIndentation"/>
+		<exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array" value="almasara-widgets"/>
+		</properties>
+	</rule>
+
+	<config name="minimum_supported_wp_version" value="6.0"/>
+	<config name="testVersion" value="7.4-"/>
+</ruleset>

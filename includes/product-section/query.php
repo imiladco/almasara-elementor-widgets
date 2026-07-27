@@ -57,10 +57,16 @@ final class Query {
         $bucket = ['roles' => []];
 
         if (is_user_logged_in()) {
-            $user             = wp_get_current_user();
-            $roles            = (array) $user->roles;
+            $user  = wp_get_current_user();
+            $roles = (array) $user->roles;
             sort($roles);
             $bucket['roles'] = $roles;
+        }
+
+        // واحد پول جاری: افزونه‌های تعویض ارز معمولاً همین را عوض می‌کنند و
+        // بدون آن، قیمت یک ارز برای بازدیدکنندهٔ ارز دیگر کش می‌شد
+        if (function_exists('get_woocommerce_currency')) {
+            $bucket['currency'] = get_woocommerce_currency();
         }
 
         return (array) apply_filters('almasara_ps_cache_bucket', $bucket);
