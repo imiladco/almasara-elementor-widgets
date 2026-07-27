@@ -1,5 +1,18 @@
 <?php
+/**
+ * حداقلِ المنتور برای تست.
+ *
+ * هدف: بشود کنترل‌های یک ویجت را ثبت کرد و فهرستشان را برداشت، یا منطق
+ * داخلی ویجت را صدا زد، بدون نصب المنتور.
+ *
+ * همه‌چیز مشروط تعریف می‌شود تا این فایل کنار وردپرسِ واقعی هم قابل
+ * بارگذاری باشد (تست‌های یکپارچه) و چیزی را دوباره اعلام نکند.
+ */
+
 namespace Elementor {
+
+if (!class_exists('Elementor\Controls_Manager')) {
+
 class Controls_Manager {
     const TAB_CONTENT='content'; const TAB_STYLE='style';
     const TEXT='text'; const NUMBER='number'; const SELECT='select'; const SELECT2='select2';
@@ -25,21 +38,52 @@ class Widget_Base {
     public function end_controls_tabs(){ $GLOBALS['AMW'][]='/TABS'; }
     public function start_controls_tab($n,$a=[]){ $GLOBALS['AMW'][]="TAB:$n"; }
     public function end_controls_tab(){ $GLOBALS['AMW'][]='/TAB'; }
+    public function get_id(){ return 'testid'; }
 }
 class Utils { public static function validate_html_tag($t){ return $t; } }
+
 }
+
+}
+
 namespace {
-    if(!defined('ABSPATH')) define('ABSPATH', true);
-    function __($s,$d=null){ return $s; }
-    function esc_html__($s,$d=null){ return $s; }
-    function esc_attr__($s,$d=null){ return $s; }
-    function is_rtl(){ return true; }
-    function get_terms($a=[]){ return []; }
-    function is_wp_error($x){ return false; }
-    function get_posts($a=[]){ return []; }
-    function get_intermediate_image_sizes(){ return ['thumbnail','medium','large','woocommerce_thumbnail']; }
-    function get_woocommerce_currency_symbol(){ return 'تومان'; }
-    $GLOBALS['AMW']=[];
+
+    if (!defined('ABSPATH')) {
+        define('ABSPATH', true);
+    }
+
+    // همه مشروط، تا کنار وردپرس واقعی دوباره اعلام نشوند
+    if (!function_exists('__')) {
+        function __($s, $d = null) { return $s; }
+    }
+    if (!function_exists('esc_html__')) {
+        function esc_html__($s, $d = null) { return $s; }
+    }
+    if (!function_exists('esc_attr__')) {
+        function esc_attr__($s, $d = null) { return $s; }
+    }
+    if (!function_exists('is_rtl')) {
+        function is_rtl() { return true; }
+    }
+    if (!function_exists('get_terms')) {
+        function get_terms($a = []) { return []; }
+    }
+    if (!function_exists('is_wp_error')) {
+        function is_wp_error($x) { return false; }
+    }
+    if (!function_exists('get_posts')) {
+        function get_posts($a = []) { return []; }
+    }
+    if (!function_exists('get_intermediate_image_sizes')) {
+        function get_intermediate_image_sizes() {
+            return ['thumbnail', 'medium', 'large', 'woocommerce_thumbnail'];
+        }
+    }
+    if (!function_exists('get_woocommerce_currency_symbol')) {
+        function get_woocommerce_currency_symbol($c = '') { return 'تومان'; }
+    }
+
+    $GLOBALS['AMW'] = $GLOBALS['AMW'] ?? [];
 
     /**
      * فهرست کامل کنترل‌ها، سکشن‌ها و تب‌های یک ویجت، به ترتیب ثبت.

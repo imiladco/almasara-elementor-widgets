@@ -303,6 +303,16 @@
 				});
 			});
 		} catch (e) {
+			// سوایپر ممکن است پیش از خطا کلاس swiper-initialized را گذاشته
+			// باشد. اگر بماند، قواعد فاصلهٔ ما کنار می‌روند در حالی که هیچ
+			// اندازه‌گذاری اینلاینی هم انجام نشده — یعنی چیدمان بدتر از
+			// حالتی می‌شود که اصلاً اسلایدری در کار نبود. پس پاکش می‌کنیم تا
+			// CSS دوباره کنترل را دست بگیرد.
+			var el = root.querySelector('.amw-ps__slider');
+			if (el) {
+				el.classList.remove('swiper-initialized');
+			}
+
 			if (window.console && console.error) {
 				console.error('[almasara-product-section] init failed:', e);
 			}

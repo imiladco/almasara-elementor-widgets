@@ -200,7 +200,27 @@ final class Query {
             $clauses['join'] .= " INNER JOIN {$wpdb->wc_product_meta_lookup} amw_pml ON {$wpdb->posts}.ID = amw_pml.product_id ";
 
             if ($has_price) {
-                $clauses['where'] .= ' AND amw_pml.min_price IS NOT NULL ';
+                /*
+                 * «قیمت دارد» از روی متای _price سنجیده می‌شود، نه از روی
+                 * NULL بودن min_price در جدول جست‌وجو.
+                 *
+                 * دلیلش را تست یکپارچه نشان داد: برای محصول بدون قیمت،
+                 * min_price همیشه NULL نیست و می‌تواند رشتهٔ خالی باشد، که
+                 * «IS NOT NULL» را رد می‌کند و محصول بی‌قیمت از فیلتر عبور
+                 * می‌کرد.
+                 *
+                 * EXISTS عمداً به‌جای JOIN است: متای _price برای محصول متغیر
+                 * چند ردیف دارد و JOIN دوباره کارت تکراری می‌ساخت، ولی
+                 * زیرکوئری تعداد ردیف‌های بیرونی را دست نمی‌زند. مقایسه با
+                 * رشتهٔ خالی هم محصول رایگان را حذف نمی‌کند، چون مقدارش «0»
+                 * است نه خالی.
+                 */
+                $clauses['where'] .= " AND EXISTS (
+                    SELECT 1 FROM {$wpdb->postmeta} amw_pm
+                    WHERE amw_pm.post_id = {$wpdb->posts}.ID
+                      AND amw_pm.meta_key = '_price'
+                      AND amw_pm.meta_value <> ''
+                ) ";
             }
 
             if ($min_price > 0) {

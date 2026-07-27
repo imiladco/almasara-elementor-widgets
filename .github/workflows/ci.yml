@@ -30,8 +30,32 @@ jobs:
           find . -name '*.php' -not -path './vendor/*' -print0 \
             | xargs -0 -n1 -P4 php -l
 
-      - name: تست‌ها
+      - name: تست‌های واحد
         run: php tests/run.php
+
+  integration:
+    name: یکپارچه با ووکامرس (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # درایور SQLite یعنی نیازی به سرویس دیتابیس نیست
+          extensions: dom, libxml, mbstring, sqlite3, pdo_sqlite, gd, zip
+          coverage: none
+
+      - name: نصب وردپرس و ووکامرس
+        run: bash tests/integration/setup.sh "$RUNNER_TEMP/wpint"
+
+      - name: اجرای تست‌های یکپارچه
+        run: WP_ROOT="$RUNNER_TEMP/wpint/wp" php tests/integration/run.php
 
   javascript:
     name: JavaScript
