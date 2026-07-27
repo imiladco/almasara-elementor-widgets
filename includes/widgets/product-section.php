@@ -116,22 +116,32 @@ class Product_Section extends Widget_Base {
         echo '</div>'; // .amw-ps
     }
 
-    /** پیکربندی‌ای که به JS داده می‌شود (اسلایدر + پارامترهای فیلتر ایجکسی) */
+    /**
+     * پیکربندی‌ای که به JS داده می‌شود.
+     *
+     * عمداً هیچ پارامتر گرانی اینجا نیست: برای فیلتر ایجکسی فقط «کدام ویجت»
+     * و «کدام دسته» فرستاده می‌شود و سرور خودش تنظیمات ذخیره‌شده را می‌خواند.
+     * count فقط برای تعداد اسکلت‌های حالت بارگذاری است و به سرور نمی‌رود.
+     */
     private function build_js_config(array $settings, array $query_args): array {
         return Settings::slider($settings) + [
             'restUrl'   => esc_url_raw(Rest::url()),
-            'source'    => $query_args['source'],
-            'listingId' => $query_args['listing_id'],
+            'postId'    => $this->owner_post_id(),
+            'elementId' => $this->get_id(),
             'count'     => $query_args['count'],
-            'orderby'   => $query_args['orderby'],
-            'order'     => $query_args['order'],
-            'cache'     => $query_args['cache'],
-            'hasPrice'  => $query_args['has_price'],
-            'inStock'   => $query_args['in_stock'],
-            'hasImage'  => $query_args['has_image'],
-            'minPrice'  => $query_args['min_price'],
-            'card'      => wp_json_encode($query_args['card']),
         ];
+    }
+
+    /** شناسهٔ سندی که این ویجت در آن ذخیره شده (صفحه، قالب یا Listing) */
+    private function owner_post_id(): int {
+        if (class_exists('\Elementor\Plugin')) {
+            $document = \Elementor\Plugin::$instance->documents->get_current();
+            if ($document) {
+                return (int) $document->get_main_id();
+            }
+        }
+
+        return (int) get_the_ID();
     }
 
     /** هدر: عنوان + پیل‌های دسته‌بندی + دکمهٔ مشاهده همه */

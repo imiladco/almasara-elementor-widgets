@@ -20,6 +20,7 @@ final class Plugin {
     }
 
     private function __construct() {
+        require_once ALMASARA_WIDGETS_PATH . 'includes/svg.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/responsive.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-extras.php';
         require_once ALMASARA_WIDGETS_PATH . 'includes/product-card.php';

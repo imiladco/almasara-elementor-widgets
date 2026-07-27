@@ -57,7 +57,9 @@ final class Settings {
             'count'      => max(1, min(48, absint($s['products_count'] ?? 12))),
             'orderby'    => in_array($orderby, self::ORDERBY, true) ? $orderby : 'date',
             'order'      => 'ASC' === strtoupper((string) ($s['order'] ?? 'DESC')) ? 'ASC' : 'DESC',
-            'cache'      => $is_editor ? 0 : max(0, min(1440, absint($s['cache_minutes'] ?? 0))),
+            // پیش‌فرض عمداً با پیش‌فرض خودِ کنترل یکی است، تا اگر کلید موجود
+            // نبود کش بی‌سروصدا خاموش نشود
+            'cache'      => $is_editor ? 0 : max(0, min(1440, absint($s['cache_minutes'] ?? 30))),
             'card'       => self::card($s),
         ] + self::filters($s);
     }

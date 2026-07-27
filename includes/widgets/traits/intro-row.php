@@ -531,27 +531,16 @@ trait Intro_Row {
         echo '</span>';
     }
 
-    /** خواندن و پاک‌سازی فایل SVG برای درج inline */
+    /**
+     * خواندن و پاک‌سازی فایل SVG برای درج inline.
+     *
+     * پاک‌سازی به Almasara_Widgets\Svg سپرده شده که با DOM و فهرست سفید کار
+     * می‌کند. پیش از این چند preg_replace اینجا بود که ذاتاً قابل دور زدن
+     * بود: الگوی رویدادها فقط attribute کوتیشن‌دار را می‌گرفت، پس مثلاً
+     * «onload=alert(1)» بدون کوتیشن سالم عبور می‌کرد.
+     */
     private function get_inline_svg(int $attachment_id): string {
-        $path = get_attached_file($attachment_id);
-        if (!$path || !file_exists($path)) {
-            return '';
-        }
-
-        $svg = file_get_contents($path);
-        if (false === $svg || false === stripos($svg, '<svg')) {
-            return '';
-        }
-
-        // پاک‌سازی امنیتی: حذف اسکریپت‌ها، رویدادها و لینک‌های خطرناک
-        $svg = preg_replace('/<\?xml.*?\?>/is', '', $svg);
-        $svg = preg_replace('/<!DOCTYPE.*?>/is', '', $svg);
-        $svg = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $svg);
-        $svg = preg_replace('/<foreignObject\b[^>]*>.*?<\/foreignObject>/is', '', $svg);
-        $svg = preg_replace('/\son\w+\s*=\s*(["\']).*?\1/is', '', $svg);
-        $svg = preg_replace('/\s(?:xlink:)?href\s*=\s*(["\'])\s*(?:javascript|data):.*?\1/is', '', $svg);
-
-        return trim($svg);
+        return \Almasara_Widgets\Svg::from_attachment($attachment_id);
     }
 
     /** پیدا کردن محصول: صفحه محصول جاری، وگرنه آخرین محصول برای پیش‌نمایش ادیتور */

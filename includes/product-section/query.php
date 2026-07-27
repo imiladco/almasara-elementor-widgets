@@ -37,7 +37,53 @@ final class Query {
     }
 
     private static function cache_key(string $prefix, array $parts): string {
-        return $prefix . md5(wp_json_encode(array_merge([self::cache_version()], $parts)));
+        return $prefix . md5(wp_json_encode(array_merge([self::cache_version(), self::cache_bucket()], $parts)));
+    }
+
+    /**
+     * «سبد» کش: هر چیزی که خروجی را بین بازدیدکننده‌ها متفاوت می‌کند.
+     *
+     * خروجی این ویجت می‌تواند از یک قالب Listing بیاید که داخلش نام کاربر،
+     * قیمت نقش‌محور، قیمت عمده، واحد پول انتخاب‌شده یا وضعیت ورود باشد. با
+     * یک کلید مشترک، خروجیِ ساخته‌شده برای یک کاربر به بقیه هم داده می‌شد.
+     *
+     * پایه‌اش نقش‌های کاربر است، چون رایج‌ترین منبع تفاوت قیمت همین است. هر
+     * چیز دیگری — مثلاً واحد پول افزونهٔ Currency Switcher یا سطح مشتری —
+     * را می‌توان با همین فیلتر به کلید اضافه کرد:
+     *
+     *     add_filter('almasara_ps_cache_bucket', fn($b) => $b + ['cur' => my_currency()]);
+     */
+    private static function cache_bucket(): array {
+        $bucket = ['roles' => []];
+
+        if (is_user_logged_in()) {
+            $user             = wp_get_current_user();
+            $roles            = (array) $user->roles;
+            sort($roles);
+            $bucket['roles'] = $roles;
+        }
+
+        return (array) apply_filters('almasara_ps_cache_bucket', $bucket);
+    }
+
+    /**
+     * آیا اجازه داریم این خروجی را کش کنیم؟
+     *
+     * برای کاربر وارد‌شده پیش‌فرض «نه» است. سبد نقش‌محور بالا بخش زیادی از
+     * تفاوت‌ها را می‌پوشاند، ولی مواردی مثل سبد خرید، لیست علاقه‌مندی یا
+     * nonce داخل کارت به خودِ کاربر گره خورده‌اند و با هیچ سبدی امن نمی‌شوند.
+     */
+    private static function may_cache(string $orderby, int $cache_min): bool {
+        if ($cache_min <= 0) {
+            return false;
+        }
+
+        // مرتب‌سازی تصادفی کش‌کردنش بی‌معنی است
+        if ('rand' === $orderby) {
+            return false;
+        }
+
+        return (bool) apply_filters('almasara_ps_may_cache', !is_user_logged_in());
     }
 
     /* =====================================================================
@@ -69,14 +115,23 @@ final class Query {
             ];
         }
 
+        // نمایانی کاتالوگ ووکامرس همیشه اعمال می‌شود، نه فقط وقتی فیلتری
+        // فعال است: محصولی که مدیر «پنهان» یا «حذف از کاتالوگ» کرده نباید در
+        // فهرست محصولات دیده شود. قبلاً این شرط به فیلتر «فقط موجود» گره
+        // خورده بود، پس با خاموش بودن آن فیلتر، محصول پنهان هم نمایش
+        // داده می‌شد.
+        $hidden = ['exclude-from-catalog'];
+
         if (!empty($filters['in_stock'])) {
-            $tax[] = [
-                'taxonomy' => 'product_visibility',
-                'field'    => 'name',
-                'terms'    => ['outofstock'],
-                'operator' => 'NOT IN',
-            ];
+            $hidden[] = 'outofstock';
         }
+
+        $tax[] = [
+            'taxonomy' => 'product_visibility',
+            'field'    => 'name',
+            'terms'    => $hidden,
+            'operator' => 'NOT IN',
+        ];
 
         if (count($tax) > 1) {
             $tax = array_merge(['relation' => 'AND'], $tax);
@@ -196,9 +251,8 @@ final class Query {
         ];
 
         // سنگین‌ترین کار این ویجت رندرِ N قالب در هر بارگذاری صفحه است؛ کش
-        // این هزینه را به یک‌بار در هر بازه کاهش می‌دهد. مرتب‌سازی تصادفی
-        // هرگز کش نمی‌شود، چون بی‌معنی است.
-        $use_cache = $cache_min > 0 && 'rand' !== $orderby;
+        // این هزینه را به یک‌بار در هر بازه کاهش می‌دهد.
+        $use_cache = self::may_cache($orderby, $cache_min);
         $key       = '';
 
         if ($use_cache) {

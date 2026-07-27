@@ -158,19 +158,13 @@
 			viewAll.href = link;
 		}
 
+		// فقط «کدام ویجت» و «کدام دسته». قالب کارت، تعداد، مرتب‌سازی، فیلترها
+		// و مدت کش را سرور از تنظیمات ذخیره‌شدهٔ همان ویجت می‌خواند — وگرنه
+		// هرکسی می‌توانست رندرِ ۴۸ کارت بدون کش را از بیرون درخواست کند.
 		var params = new URLSearchParams({
-			listing_id: cfg.listingId,
-			category: termId,
-			count: cfg.count,
-			orderby: cfg.orderby,
-			order: cfg.order,
-			cache: cfg.cache || 0,
-			has_price: cfg.hasPrice ? 1 : 0,
-			in_stock: cfg.inStock ? 1 : 0,
-			has_image: cfg.hasImage ? 1 : 0,
-			min_price: cfg.minPrice || 0,
-			source: cfg.source || 'jetengine',
-			card: cfg.card || ''
+			post_id: cfg.postId,
+			element_id: cfg.elementId,
+			category: termId
 		});
 
 		var wrapper = root.querySelector('.amw-ps__slider .swiper-wrapper');
