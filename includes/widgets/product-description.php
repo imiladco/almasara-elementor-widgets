@@ -657,15 +657,37 @@ class Product_Description extends Widget_Base {
         $scope       = $settings['link_scope'];
         $global_link = !empty($settings['link']['url']) ? $settings['link'] : null;
 
-        $wrapper_tag = 'div';
+        /*
+         * حالت «کل ویجت» با یک لینکِ روکش پیاده می‌شود، نه با پیچیدن کل ویجت
+         * داخل <a>.
+         *
+         * دلیلش این است که توضیحات محصول متن غنی است و خودش می‌تواند لینک
+         * داشته باشد؛ لینک داخل لینک HTML نامعتبر است و مرورگر تگ بیرونی را
+         * زودتر می‌بندد، که هم چیدمان و هم پیمایش با صفحه‌کلید و هم رفتار
+         * کلیک را غیرقابل‌پیش‌بینی می‌کند.
+         *
+         * روکش یک <a> واقعی و فوکوس‌پذیر است که روی کل کادر کشیده می‌شود، و
+         * لینک‌های داخل متن با z-index بالاتر روی آن می‌مانند، پس هر دو
+         * قابل کلیک و قابل Tab باقی می‌مانند.
+         */
+        $overlay = ('widget' === $scope && $global_link);
+
         $this->add_render_attribute('wrapper', 'class', ['amw-paw', 'amw-pd']);
-        if ('widget' === $scope && $global_link) {
-            $wrapper_tag = 'a';
-            $this->add_link_attributes('wrapper', $global_link);
+        if ($overlay) {
+            $this->add_render_attribute('wrapper', 'class', 'amw-pd--linked');
+            $this->add_link_attributes('overlay', $global_link);
+            $this->add_render_attribute('overlay', [
+                'class'      => 'amw-pd__overlay-link',
+                'aria-label' => $this->overlay_label($settings),
+            ]);
         }
 
         ?>
-        <<?php echo $wrapper_tag; // phpcs:ignore ?> <?php $this->print_render_attribute_string('wrapper'); ?>>
+        <div <?php $this->print_render_attribute_string('wrapper'); ?>>
+
+            <?php if ($overlay) : ?>
+                <a <?php $this->print_render_attribute_string('overlay'); ?>></a>
+            <?php endif; ?>
 
             <?php $this->render_intro_row($settings, $scope, $global_link); ?>
 
@@ -673,8 +695,17 @@ class Product_Description extends Widget_Base {
                 <?php echo wp_kses_post($content); // phpcs:ignore ?>
             </div>
 
-        </<?php echo $wrapper_tag; // phpcs:ignore ?>>
+        </div>
         <?php
+    }
+
+    /** برچسب قابل خواندن برای لینک روکش، که خودش متنی ندارد */
+    private function overlay_label(array $settings): string {
+        $title = trim((string) ($settings['title'] ?? ''));
+
+        return '' !== $title
+            ? $title
+            : __('مشاهده بیشتر', 'almasara-widgets');
     }
 
     /** خواندن توضیحات از منبع انتخابی و آماده‌سازی خروجی */

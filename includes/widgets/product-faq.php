@@ -402,12 +402,26 @@ class Product_Faq extends Widget_Base {
             <?php $this->render_intro_row($settings, 'none', null); ?>
 
             <div class="amw-faq" data-accordion="<?php echo 'yes' === $settings['accordion_mode'] ? '1' : '0'; ?>">
-                <?php foreach ($faqs as $i => $faq) :
-                    $is_open = $first_open && 0 === $i;
+                <?php
+                // شناسه‌ها به شناسهٔ یکتای المان المنتور گره می‌خورند تا اگر
+                // چند ویجت سوالات متداول در یک صفحه بود، aria-controls به
+                // پاسخ اشتباه اشاره نکند
+                $uid = $this->get_id();
+
+                foreach ($faqs as $i => $faq) :
+                    $is_open   = $first_open && 0 === $i;
+                    $answer_id = sprintf('amw-faq-a-%s-%d', $uid, $i);
+                    $button_id = sprintf('amw-faq-q-%s-%d', $uid, $i);
                     ?>
                     <div class="amw-faq__item<?php echo $is_open ? ' is-open' : ''; ?>">
                         <<?php echo $q_tag; // phpcs:ignore ?> class="amw-faq__qwrap">
-                            <button type="button" class="amw-faq__q" aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>">
+                            <button
+                                type="button"
+                                class="amw-faq__q"
+                                id="<?php echo esc_attr($button_id); ?>"
+                                aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>"
+                                aria-controls="<?php echo esc_attr($answer_id); ?>"
+                            >
                                 <span class="amw-faq__num" aria-hidden="true"><?php echo esc_html($this->fa_number($i + 1)); ?></span>
                                 <span class="amw-faq__qtext"><?php echo esc_html($faq['q']); ?></span>
                                 <span class="amw-faq__chev" aria-hidden="true">
@@ -415,7 +429,13 @@ class Product_Faq extends Widget_Base {
                                 </span>
                             </button>
                         </<?php echo $q_tag; // phpcs:ignore ?>>
-                        <div class="amw-faq__a"<?php echo $is_open ? '' : ' hidden'; ?>>
+                        <div
+                            class="amw-faq__a"
+                            id="<?php echo esc_attr($answer_id); ?>"
+                            role="region"
+                            aria-labelledby="<?php echo esc_attr($button_id); ?>"
+                            <?php echo $is_open ? '' : ' hidden'; ?>
+                        >
                             <div class="amw-faq__a-in"><?php echo wp_kses_post(wpautop($faq['a'])); ?></div>
                         </div>
                     </div>

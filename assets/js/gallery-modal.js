@@ -143,26 +143,40 @@
 
 		function open(index) {
 			isOpen = true;
-			modal.setAttribute('aria-hidden', 'false');
-			document.body.classList.add('amw-pg-noscroll');
 
 			// یک reflow کوچک تا transition درست بازی کند بعد افزودن کلاس
 			// eslint-disable-next-line no-unused-expressions
 			modal.offsetHeight;
-			modal.classList.add('is-open');
+
+			// حبس فوکوس، خنثی‌کردن پس‌زمینه، بستن با Escape و برگرداندن فوکوس
+			// به عنصر بازکننده، همه بر عهدهٔ کنترلر مشترک است
+			if (window.AlmasaraModal) {
+				window.AlmasaraModal.open(modal, {
+					initialFocus: closeBtn,
+					onClose: function () { isOpen = false; }
+				});
+			} else {
+				modal.classList.add('is-open');
+				document.body.classList.add('amw-pg-noscroll');
+				closeBtn.focus({ preventScroll: true });
+			}
 
 			fetchImages().then(function (list) {
 				if (list.length) {
 					show(index);
 				}
 			});
-			closeBtn.focus({ preventScroll: true });
 		}
 
 		function close() {
 			isOpen = false;
+
+			if (window.AlmasaraModal) {
+				window.AlmasaraModal.close(modal);
+				return;
+			}
+
 			modal.classList.remove('is-open');
-			modal.setAttribute('aria-hidden', 'true');
 			document.body.classList.remove('amw-pg-noscroll');
 		}
 

@@ -170,7 +170,17 @@
 
 			if (activeIndex !== previousIndex) {
 				pairs.forEach(function (pair, idx) {
-					pair.link.classList.toggle('is-active', idx === activeIndex);
+					var isActive = idx === activeIndex;
+					pair.link.classList.toggle('is-active', isActive);
+
+					// کلاس تنها فقط ظاهر را عوض می‌کند و صفحه‌خوان از آن چیزی
+					// نمی‌فهمد. aria-current="location" دقیقاً برای «بخش جاری
+					// در همین صفحه» تعریف شده است.
+					if (isActive) {
+						pair.link.setAttribute('aria-current', 'location');
+					} else {
+						pair.link.removeAttribute('aria-current');
+					}
 				});
 				var active = activeIndex >= 0 ? pairs[activeIndex] : null;
 				if (active) {

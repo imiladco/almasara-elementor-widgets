@@ -20,14 +20,25 @@
 		var form = modal.querySelector('.amw-rv-form');
 
 		function open() {
-			modal.setAttribute('aria-hidden', 'false');
+			// این مودال حتی فوکوس اولیه هم نداشت؛ حالا مثل بقیه از کنترلر
+			// مشترک می‌گذرد: فوکوس داخلش حبس می‌شود، پس‌زمینه از دسترس خارج
+			// و بعد از بستن فوکوس به دکمهٔ بازکننده برمی‌گردد.
+			if (window.AlmasaraModal) {
+				window.AlmasaraModal.open(modal);
+				return;
+			}
+
 			modal.classList.add('is-open');
 			document.body.classList.add('amw-pg-noscroll');
 		}
 
 		function close() {
+			if (window.AlmasaraModal) {
+				window.AlmasaraModal.close(modal);
+				return;
+			}
+
 			modal.classList.remove('is-open');
-			modal.setAttribute('aria-hidden', 'true');
 			document.body.classList.remove('amw-pg-noscroll');
 		}
 
@@ -38,11 +49,16 @@
 				close();
 			}
 		});
-		document.addEventListener('keydown', function (e) {
-			if (e.key === 'Escape' && modal.classList.contains('is-open')) {
-				close();
-			}
-		});
+
+		// Escape را کنترلر مشترک می‌گیرد؛ این فقط برای حالتی است که به هر
+		// دلیل لود نشده باشد
+		if (!window.AlmasaraModal) {
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+					close();
+				}
+			});
+		}
 
 		if (!form) {
 			return;

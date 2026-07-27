@@ -111,6 +111,26 @@
 
 /* ---------- ویجت توضیحات محصول ---------- */
 
+/*
+ * حالت «کل ویجت لینک باشد» با یک لینک روکش کار می‌کند تا لینک تودرتو نسازد.
+ * روکش کل کادر را می‌گیرد، و هر لینک یا دکمهٔ واقعیِ داخل متن یک لایه بالاتر
+ * می‌نشیند تا هم قابل کلیک بماند و هم با Tab در دسترس باشد.
+ */
+.amw-pd--linked {
+	position: relative;
+}
+
+.amw-pd__overlay-link {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+.amw-pd--linked :is(a, button, input, select, textarea):not(.amw-pd__overlay-link) {
+	position: relative;
+	z-index: 2;
+}
+
 .amw-pd__content {
 	color: #1a2b4a;
 	line-height: 2;

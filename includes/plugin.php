@@ -97,22 +97,32 @@ final class Plugin {
             true
         );
 
+        // کنترلر مشترک مودال: حبس فوکوس، خنثی‌کردن پس‌زمینه، Escape و
+        // برگرداندن فوکوس. هر ویجتی که مودال دارد به آن وابسته می‌شود.
+        wp_register_script(
+            'almasara-modal',
+            ALMASARA_WIDGETS_URL . 'assets/js/modal.js',
+            [],
+            ALMASARA_WIDGETS_VERSION,
+            true
+        );
+
         $scripts = [
-            'almasara-gallery'         => 'gallery-modal.js',
-            'almasara-nav'             => 'anchor-nav.js',
-            'almasara-faq'             => 'faq.js',
-            'almasara-reviews'         => 'reviews.js',
-            'almasara-hero-slider'     => 'hero-slider.js',
-            'almasara-product-section' => 'product-section.js',
+            'almasara-gallery'         => ['gallery-modal.js', ['almasara-modal']],
+            'almasara-nav'             => ['anchor-nav.js', []],
+            'almasara-faq'             => ['faq.js', []],
+            'almasara-reviews'         => ['reviews.js', ['almasara-modal']],
+            'almasara-hero-slider'     => ['hero-slider.js', ['almasara-swiper']],
+            'almasara-product-section' => ['product-section.js', ['almasara-swiper']],
         ];
 
-        $needs_swiper = ['almasara-hero-slider', 'almasara-product-section'];
+        foreach ($scripts as $handle => $script) {
+            [$file, $deps] = $script;
 
-        foreach ($scripts as $handle => $file) {
             wp_register_script(
                 $handle,
                 ALMASARA_WIDGETS_URL . 'assets/js/' . $file,
-                in_array($handle, $needs_swiper, true) ? ['almasara-swiper'] : [],
+                $deps,
                 ALMASARA_WIDGETS_VERSION,
                 true
             );
