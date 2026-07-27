@@ -461,26 +461,29 @@ class Product_Price extends Widget_Base {
         }
 
         if ($product->is_type('variable')) {
-            $min_active  = $product->get_variation_price('min', true);
-            $min_regular = $product->get_variation_regular_price('min', true);
-
             if ('range' === $variable_mode) {
-                $max_active = $product->get_variation_price('max', true);
-                if ('' !== $min_active && '' !== $max_active && (float) $max_active > (float) $min_active) {
-                    $data['current']  = (string) $min_active;
-                    $data['max']      = (string) $max_active;
-                    $data['is_range'] = true;
+                $min = $product->get_variation_price('min', true);
+                $max = $product->get_variation_price('max', true);
+
+                if ('' !== $min && '' !== $max && (float) $max > (float) $min) {
+                    $data['current']   = (string) $min;
+                    $data['max']       = (string) $max;
+                    $data['is_range']  = true;
                     $data['has_price'] = true;
                     return $data;
                 }
             }
 
-            if ('' !== $min_regular && '' !== $min_active && (float) $min_active < (float) $min_regular) {
-                $data['current'] = (string) $min_active;
-                $data['old']     = (string) $min_regular;
+            // قیمت فعلی و پیشین باید از یک گزینهٔ واحد بیایند. کمترین قیمت
+            // فعال و کمترین قیمت عادی می‌توانند متعلق به دو گزینهٔ متفاوت
+            // باشند، و مقایسهٔ آن دو درصد تخفیفی می‌سازد که هیچ گزینه‌ای
+            // واقعاً ندارد.
+            $cheapest = $this->cheapest_variation($product);
+
+            $data['current'] = $cheapest['price'];
+            if ('' !== $cheapest['regular'] && (float) $cheapest['regular'] > (float) $cheapest['price']) {
+                $data['old']     = $cheapest['regular'];
                 $data['on_sale'] = true;
-            } else {
-                $data['current'] = ('' === $min_active) ? (string) $min_regular : (string) $min_active;
             }
 
             $data['has_price'] = ('' !== $data['current']);
@@ -491,16 +494,72 @@ class Product_Price extends Widget_Base {
         $sale    = $product->get_sale_price();
 
         if ($product->is_on_sale() && '' !== $sale && null !== $sale) {
-            $data['current'] = (string) $sale;
-            $data['old']     = ('' === $regular || null === $regular) ? '' : (string) $regular;
-            $data['on_sale'] = true;
+            $data['current'] = $this->display_price($product, $sale);
+            $data['old']     = $this->display_price($product, $regular);
+            $data['on_sale'] = '' !== $data['old'];
         } else {
-            $current = ('' === $regular || null === $regular) ? $product->get_price() : $regular;
-            $data['current'] = ('' === $current || null === $current) ? '' : (string) $current;
+            $data['current'] = $this->display_price($product, ('' === $regular || null === $regular) ? $product->get_price() : $regular);
         }
 
         $data['has_price'] = ('' !== $data['current']);
         return $data;
+    }
+
+    /**
+     * قیمت آماده نمایش.
+     *
+     * مقادیر خامِ get_price/get_regular_price تنظیمات مالیاتی فروشگاه را
+     * نمی‌دانند، در حالی که مسیر محصول متغیر (get_variation_price با آرگومان
+     * دوم true) قیمت نمایشی می‌دهد. بدون این تبدیل، فروشگاهی که قیمت را
+     * بدون مالیات ذخیره و با مالیات نمایش می‌دهد، برای محصول ساده عددی
+     * متفاوت از خودِ ووکامرس نشان می‌داد.
+     */
+    private function display_price(\WC_Product $product, $raw): string {
+        if ('' === $raw || null === $raw) {
+            return '';
+        }
+
+        if (!function_exists('wc_get_price_to_display')) {
+            return (string) $raw;
+        }
+
+        return (string) wc_get_price_to_display($product, ['price' => $raw]);
+    }
+
+    /**
+     * ارزان‌ترین گزینهٔ یک محصول متغیر، همراه قیمت عادیِ همان گزینه.
+     *
+     * @return array{price:string,regular:string}
+     */
+    private function cheapest_variation(\WC_Product $product): array {
+        $best = ['price' => '', 'regular' => ''];
+
+        foreach ($product->get_children() as $child_id) {
+            $variation = wc_get_product($child_id);
+            if (!$variation instanceof \WC_Product || !$variation->exists()) {
+                continue;
+            }
+
+            $price = $this->display_price($variation, $variation->get_price());
+            if ('' === $price) {
+                continue;
+            }
+
+            if ('' === $best['price'] || (float) $price < (float) $best['price']) {
+                $best = [
+                    'price'   => $price,
+                    'regular' => $this->display_price($variation, $variation->get_regular_price()),
+                ];
+            }
+        }
+
+        // اگر هیچ گزینه‌ای خوانده نشد، به مقدار تجمیعی خودِ ووکامرس برمی‌گردیم
+        if ('' === $best['price']) {
+            $min = $product->get_variation_price('min', true);
+            $best['price'] = ('' === $min || null === $min) ? '' : (string) $min;
+        }
+
+        return $best;
     }
 
     private function format_amount(string $value): string {

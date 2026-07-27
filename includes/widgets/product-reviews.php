@@ -406,6 +406,11 @@ class Product_Reviews extends Widget_Base {
             'number'  => max(1, (int) $settings['reviews_limit']),
         ]);
 
+        // پاسخ‌ها با یک کوئری برای همهٔ دیدگاه‌ها گرفته و در PHP گروه‌بندی
+        // می‌شوند. قبلاً داخل حلقه به‌ازای هر دیدگاه یک get_comments جدا اجرا
+        // می‌شد، یعنی با سقف ۱۰۰ دیدگاه تا ۱۰۱ کوئری فقط برای همین ویجت.
+        $replies = $this->fetch_replies($reviews);
+
         $this->add_render_attribute('wrapper', [
             'class'         => 'amw-paw amw-rv',
             'data-endpoint' => esc_url_raw(rest_url('almasara/v1/reviews')),
@@ -428,7 +433,7 @@ class Product_Reviews extends Widget_Base {
                 <div class="amw-rv__list">
                     <?php foreach ($reviews as $review) :
                         $this->render_card($review, $settings);
-                        foreach (get_comments(['parent' => $review->comment_ID, 'status' => 'approve']) as $reply) {
+                        foreach ($replies[(int) $review->comment_ID] ?? [] as $reply) {
                             $this->render_card($reply, $settings, true);
                         }
                     endforeach; ?>
@@ -441,6 +446,34 @@ class Product_Reviews extends Widget_Base {
 
         </div>
         <?php
+    }
+
+    /**
+     * پاسخ‌های همهٔ دیدگاه‌ها با یک کوئری، گروه‌بندی‌شده بر پایهٔ شناسهٔ والد.
+     *
+     * @param \WP_Comment[] $reviews
+     * @return array<int, \WP_Comment[]>
+     */
+    private function fetch_replies(array $reviews): array {
+        $parents = array_map(static fn($review) => (int) $review->comment_ID, $reviews);
+
+        if (!$parents) {
+            return [];
+        }
+
+        $replies = get_comments([
+            'parent__in' => $parents,
+            'status'     => 'approve',
+            'orderby'    => 'comment_date_gmt',
+            'order'      => 'ASC',
+        ]);
+
+        $grouped = [];
+        foreach ($replies as $reply) {
+            $grouped[(int) $reply->comment_parent][] = $reply;
+        }
+
+        return $grouped;
     }
 
     /** کارت یک دیدگاه یا پاسخ */

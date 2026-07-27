@@ -15,11 +15,54 @@
 		}
 	}
 
+	/*
+	 * صفِ انتظارِ کتابخانه.
+	 *
+	 * قبلاً وقتی window.Swiper نبود، فقط فلگ init ست نمی‌شد و امید بسته بود
+	 * به اینکه MutationObserver دوباره صدا بزند. همین باعث شده بود آن
+	 * observer روی کل صفحه و بدون throttle بماند. با یک انتظار صریح و
+	 * زمان‌دار، observer به شبکهٔ ایمنیِ واقعی تبدیل می‌شود و می‌شود مهارش کرد.
+	 */
+	var pending = [];
+	var poller = null;
+
+	function waitForSwiper(root) {
+		if (pending.indexOf(root) === -1) {
+			pending.push(root);
+		}
+		if (poller) {
+			return;
+		}
+
+		var waited = 0;
+		poller = window.setInterval(function () {
+			waited += 100;
+
+			if (window.Swiper) {
+				window.clearInterval(poller);
+				poller = null;
+				var queue = pending;
+				pending = [];
+				queue.forEach(setup);
+				return;
+			}
+
+			if (waited >= 20000) {
+				window.clearInterval(poller);
+				poller = null;
+				pending = [];
+			}
+		}, 100);
+	}
+
 	function setup(root) {
-		// window.Swiper ممکن است هنوز لود نشده باشد (یا اصلاً عنصر آماده
-		// نباشد) — فلگ init را ست نمی‌کنیم تا تلاش بعدی (از observer) دوباره
-		// امتحان کند؛ همین برای idempotent بودن initAll در فراخوانی مکرر کافی است.
-		if (root.__amwHero || !window.Swiper) {
+		if (root.__amwHero) {
+			return;
+		}
+
+		// فلگ init عمداً ست نمی‌شود تا وقتی کتابخانه رسید دوباره تلاش شود
+		if (!window.Swiper) {
+			waitForSwiper(root);
 			return;
 		}
 
@@ -113,14 +156,31 @@
 	}
 
 	/**
-	 * شبکه ایمنی برای ویرایشگر المنتور: اگر افزونه دیگری در همان حلقه
-	 * frontend/element_ready خطای uncaught بدهد، هوک‌های صف‌شده بعد از آن
-	 * (از جمله همین ویجت) ممکن است اصلاً اجرا نشوند. در آن حالت، هر تغییر
-	 * DOM (که در ویرایشگر مدام اتفاق می‌افتد) دوباره اسکن می‌کند؛ setup()
-	 * روی عنصر آماده‌شده idempotent است، پس فراخوانی مکرر بی‌خطر است.
+	 * شبکه ایمنی: اگر افزونه دیگری در همان حلقه frontend/element_ready خطای
+	 * uncaught بدهد، هوک‌های صف‌شده بعد از آن (از جمله همین ویجت) ممکن است
+	 * اصلاً اجرا نشوند.
+	 *
+	 * حتماً throttle می‌شود: نسخهٔ قبلی به‌ازای هر جهش DOM یک پیمایش کامل
+	 * صفحه راه می‌انداخت و در فرانت‌اند هم فعال بود، نه فقط در ویرایشگر.
+	 * isEditor هم داخل callback سنجیده می‌شود نه موقع نصب، چون در آن لحظه
+	 * elementorFrontend معمولاً هنوز تعریف نشده است.
 	 */
 	if (window.MutationObserver && document.body) {
-		new MutationObserver(function () { initAll(document); })
-			.observe(document.body, { childList: true, subtree: true });
+		var queued = false;
+		var scan = function () {
+			var editing = window.elementorFrontend
+				&& typeof window.elementorFrontend.isEditMode === 'function'
+				&& window.elementorFrontend.isEditMode();
+
+			if (queued || editing) {
+				return;
+			}
+			queued = true;
+			window.requestAnimationFrame(function () {
+				queued = false;
+				initAll(document);
+			});
+		};
+		new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
 	}
 })();

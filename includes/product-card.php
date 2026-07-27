@@ -70,9 +70,14 @@ final class Product_Card {
     public static function get_price(\WC_Product $product): array {
         $empty = ['num' => '', 'is_free' => false, 'has' => false];
 
+        // برای محصول متغیر، get_variation_price با آرگومان دوم true خودش
+        // قیمت نمایشی می‌دهد. برای بقیه، مقدار خام باید از فیلتر نمایش
+        // ووکامرس بگذرد، وگرنه در فروشگاهی که قیمت را بدون مالیات ذخیره و
+        // با مالیات نمایش می‌دهد، کارت عددی متفاوت از صفحهٔ محصول نشان
+        // می‌داد.
         $value = $product->is_type('variable')
             ? $product->get_variation_price('min', true)
-            : $product->get_price();
+            : (function_exists('wc_get_price_to_display') ? wc_get_price_to_display($product) : $product->get_price());
 
         if ('' === $value || null === $value) {
             return $empty;
